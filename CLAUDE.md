@@ -2,9 +2,23 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Purpose
+
+Built with [KW Habilitation](https://kwhab.ca/) to make an accessible social platform that **seniors and adults with intellectual or developmental disabilities** can use independently and safely.
+
+- **Independence:** help users engage with the outside world on their own terms.
+- **Safety:** guardrails that protect users.
+- **Accessibility:** larger fonts, more input/output modes (text-to-speech via ElevenLabs, speech-to-text for input), image adjustments for colour-blind users, etc.
+- **Simplicity:** strip away excess Facebook features to simplify the experience.
+- **Balance:** simplification and guardrails also take choices away from users. Weigh every removal or restriction against the erosion of independence; don't hide or block something just because it's possible.
+
+Judge UI changes by these audiences, not by what a typical Facebook user expects.
+
 ## What this is
 
 A Flutter desktop wrapper around facebook.com, built for **macOS**. The app window is the Facebook website in a WKWebView, restyled and extended with injected CSS/JS/HTML, plus native menus. Only the macOS UI matters; the iOS, Android and Windows targets are unmaintained template leftovers. Several people work on different UI areas in parallel, so the layout is organized to keep each area in its own files.
+
+Injected JS runs inside Facebook's page, so Facebook's own scripts can read anything in it. Keep secrets (e.g. the ElevenLabs API key) and calls to outside services on the Dart side, and reach them from the page through a bridge, not from `assets/injections/`.
 
 ## Commands
 
