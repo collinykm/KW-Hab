@@ -1,0 +1,57 @@
+/* Top bar (div[role="banner"]).
+ * Left: Facebook logo + search (unchanged).
+ * Middle: Home, Friends, Reels, and a Messages tab added by js/top-bar.js.
+ * Right: only the profile button, whose menu js/top-bar.js trims down. */
+
+/* Middle tabs we don't offer. */
+div[role="navigation"][aria-label="Facebook"] li:has(a[aria-label="Marketplace"]),
+div[role="navigation"][aria-label="Facebook"] li:has(a[aria-label="Gaming"]) {
+  display: none !important;
+}
+
+/* Right side: the menu grid, Messenger (replaced by the Messages tab) and
+ * notifications. Each sits in its own direct child of the controls nav. */
+div[role="navigation"][aria-label="Account Controls and Settings"] > :has([aria-label="Facebook menu"]),
+div[role="navigation"][aria-label="Account Controls and Settings"] > :has([aria-label^="Messenger"]),
+div[role="navigation"][aria-label="Account Controls and Settings"] > :has([aria-label^="Notifications"]) {
+  display: none !important;
+}
+
+/* Messages tab (a clone of the Reels tab). Facebook drives the active state of
+ * its own tabs from React, so ours is driven by data-kw-active instead. */
+.kw-top-bar-messages .kw-top-bar-indicator {
+  transform: scaleY(0) !important;
+}
+.kw-top-bar-messages[data-kw-active] .kw-top-bar-indicator {
+  transform: none !important;
+}
+.kw-top-bar-messages svg {
+  --x-color: var(--secondary-icon) !important;
+}
+.kw-top-bar-messages[data-kw-active] svg {
+  --x-color: var(--primary-button-background) !important;
+}
+/* Facebook adds its hover highlight from JS, which our clones don't get. */
+.kw-top-bar-messages a:hover > div[role="none"] {
+  opacity: 1 !important;
+  top: 4px !important;
+  bottom: 4px !important;
+  border-radius: 8px !important;
+  background-color: var(--hover-overlay) !important;
+}
+.kw-top-bar-messages[data-kw-active] a:hover > div[role="none"] {
+  opacity: 0 !important;
+}
+
+/* Profile menu "Getting started" item (a clone of Log out). */
+.kw-top-bar-onboarding [role="link"]:hover > div[role="none"] {
+  opacity: 1 !important;
+  border-radius: 8px !important;
+  background-color: var(--hover-overlay) !important;
+}
+
+/* Profile menu: everything js/top-bar.js marks as not kept. */
+div[role="dialog"][aria-label="Your profile"] [data-kw-top-bar-hidden],
+div[role="dialog"][aria-label="Your profile"] footer[role="contentinfo"] {
+  display: none !important;
+}
