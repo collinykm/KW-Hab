@@ -1,7 +1,8 @@
 /* Top bar (div[role="banner"]).
  * Left: Facebook logo + search (unchanged).
  * Middle: Home, Friends, Reels, and a Messages tab added by js/top-bar.js.
- * Right: only the profile button, whose menu js/top-bar.js trims down. */
+ * Right: only the profile button, whose menu js/top-bar.js trims down.
+ * Every middle tab and the profile button get a text label under the icon. */
 
 /* Middle tabs we don't offer. */
 div[role="navigation"][aria-label="Facebook"] li:has(a[aria-label="Marketplace"]),
@@ -43,8 +44,48 @@ div[role="navigation"][aria-label="Account Controls and Settings"] > :has([aria-
   opacity: 0 !important;
 }
 
-/* Profile menu "Getting started" item (a clone of Log out). */
-.kw-top-bar-onboarding [role="link"]:hover > div[role="none"] {
+/* Text labels under the icons (added by js/top-bar.js). */
+.kw-top-bar-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+  color: var(--secondary-text);
+  pointer-events: none;
+}
+div[role="navigation"][aria-label="Facebook"] a[role="link"] {
+  gap: 2px;
+}
+div[role="navigation"][aria-label="Facebook"] a[aria-current="page"] > .kw-top-bar-label {
+  color: var(--primary-button-background);
+}
+
+/* Profile button: shrink the 40px avatar so the label fits in the 56px bar. */
+[role="button"][aria-label="Account, your profile"] {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+/* The avatar svg draws at fixed 40px coordinates (no viewBox), so resizing it
+ * crops the picture. Scale its wrapper (picture + chevron badge) instead, and
+ * pull the margins in so it takes 34px of layout. */
+[role="button"][aria-label="Account, your profile"] > div:has(> svg[aria-label="Your profile"]) {
+  transform: scale(0.85);
+  margin: -3px !important;
+}
+
+/* Profile menu: "View my profile" under the user's name. */
+.kw-top-bar-profile-hint {
+  display: block;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--secondary-text);
+}
+
+/* Profile menu "Settings" item (a clone of Log out). */
+.kw-top-bar-settings [role="link"]:hover > div[role="none"] {
   opacity: 1 !important;
   border-radius: 8px !important;
   background-color: var(--hover-overlay) !important;

@@ -2,15 +2,18 @@
 //
 // Middle: adds a Messages tab after Reels, built by cloning Facebook's Reels
 // tab so it looks the same. It opens full-screen Messenger (/messages/).
+// Every tab, and the profile button, gets a text label under its icon.
 //
-// Profile menu: keeps the profile name link, a "Getting started" item that
-// opens onboarding, and Log out. Everything else is hidden.
+// Profile menu: keeps the profile name link (with a "View my profile" hint),
+// a "Settings" item that opens KW Hab's own settings (not Facebook's), and
+// Log out. Everything else is hidden.
 
 var MESSAGES_PATH = '/messages/';
-// TODO: replace with the real onboarding screen once it exists.
-var ONBOARDING_URL = '#kw-onboarding';
+// TODO: replace with KW Hab's own settings screen once it exists.
+var SETTINGS_URL = '#kw-settings';
 
 var MAIN_NAV = 'div[role="navigation"][aria-label="Facebook"]';
+var PROFILE_BUTTON = 'div[role="navigation"][aria-label="Account Controls and Settings"] [role="button"][aria-label="Account, your profile"]';
 var PROFILE_MENU = 'div[role="dialog"][aria-label="Your profile"]';
 var HIDDEN = 'data-kw-top-bar-hidden';
 
@@ -26,7 +29,25 @@ function setIcon(svg, name) {
   svg.innerHTML = src.innerHTML;
 }
 
-// ---- Messages tab ---------------------------------------------------------
+// Adds (or updates) a text label under an icon. Labels are aria-hidden: the
+// element they sit in already has an aria-label with the same meaning.
+function setLabel(parent, text) {
+  var label = parent.querySelector(':scope > .kw-top-bar-label');
+  if (!label) {
+    label = document.createElement('span');
+    label.className = 'kw-top-bar-label';
+    label.setAttribute('aria-hidden', 'true');
+    parent.appendChild(label);
+  }
+  label.textContent = text;
+}
+
+// ---- Middle tabs ----------------------------------------------------------
+
+// "Friends, 3 new requests" -> "Friends".
+kwHab.onElement(MAIN_NAV + ' a[role="link"][aria-label]', function (link) {
+  setLabel(link, link.getAttribute('aria-label').split(',')[0]);
+});
 
 function updateMessagesTab() {
   var active = location.pathname.indexOf(MESSAGES_PATH) === 0;
@@ -50,12 +71,12 @@ kwHab.onElement(MAIN_NAV + ' a[aria-label="Reels"]', function (reels) {
   item.classList.add('kw-top-bar-messages');
   var link = item.querySelector('a');
   link.setAttribute('aria-label', 'Messages');
-  link.setAttribute('title', 'Messages');
   link.setAttribute('href', MESSAGES_PATH);
   link.removeAttribute('aria-current');
   if (link.previousElementSibling) link.previousElementSibling.classList.add('kw-top-bar-indicator');
   var svg = link.querySelector('svg');
   if (svg) setIcon(svg, 'messages');
+  setLabel(link, 'Messages');
 
   tab.after(item);
   updateMessagesTab();
@@ -63,45 +84,50 @@ kwHab.onElement(MAIN_NAV + ' a[aria-label="Reels"]', function (reels) {
 
 kwHab.onNavigate(updateMessagesTab);
 
+// ---- Profile button -------------------------------------------------------
+
+kwHab.onElement(PROFILE_BUTTON, function (button) {
+  setLabel(button, 'Account');
+});
+
 // ---- Profile menu ---------------------------------------------------------
 
-function openOnboarding() {
-  location.href = ONBOARDING_URL;
+function openSettings() {
+  location.href = SETTINGS_URL;
 }
 
-function makeOnboardingItem(logOut) {
+function makeSettingsItem(logOut) {
   var item = logOut.cloneNode(true);
-  item.classList.add('kw-top-bar-onboarding');
+  item.classList.add('kw-top-bar-settings');
   item.removeAttribute(HIDDEN);
 
   var label = item.querySelector('span[dir="auto"]') || item.querySelector('span');
   if (label) label.textContent = 'Settings';
 
-  //Text label for the "settings"/"onboarding" button
-
   var sprite = item.querySelector('i');
-  if (sprite) sprite.replaceWith(icon('onboarding'));
+  if (sprite) sprite.replaceWith(icon('settings'));
 
   var button = item.querySelector('[role="button"]') || item;
   button.setAttribute('role', 'link');
   button.addEventListener('click', function (e) {
     e.preventDefault();
     e.stopPropagation();
-    openOnboarding();
+    openSettings();
   });
   button.addEventListener('keydown', function (e) {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     e.preventDefault();
-    openOnboarding();
+
+    openSettings();
   });
   return item;
 }
 
-// Hides every option except Log out, and puts "Getting started" above it.
+// Hides every option except Log out, and puts "Settings" above it.
 // Safe to run repeatedly; Facebook may add items after the list appears.
 function trimProfileOptions(list) {
   var items = Array.prototype.filter.call(list.querySelectorAll('div[role="listitem"]'), function (i) {
-    return !i.classList.contains('kw-top-bar-onboarding');
+    return !i.classList.contains('kw-top-bar-settings');
   });
   if (!items.length) return;
 
@@ -114,15 +140,25 @@ function trimProfileOptions(list) {
     else i.setAttribute(HIDDEN, '');
   });
 
-  var onboarding = list.querySelector('.kw-top-bar-onboarding');
-  if (!onboarding) onboarding = makeOnboardingItem(logOut);
-  if (onboarding.nextElementSibling !== logOut) logOut.before(onboarding);
+  var settings = list.querySelector('.kw-top-bar-settings');
+  if (!settings) settings = makeSettingsItem(logOut);
+  if (settings.nextElementSibling !== logOut) logOut.before(settings);
 }
 
 kwHab.onElement(PROFILE_MENU + ' div[role="listitem"]', function (item) {
-  if (item.classList.contains('kw-top-bar-onboarding')) return;
+  if (item.classList.contains('kw-top-bar-settings')) return;
   var list = item.closest('div[role="list"]');
   if (list) trimProfileOptions(list);
+});
+
+// "View my profile" under the user's name in the profile card.
+kwHab.onElement(PROFILE_MENU + ' a[href="/me/"] span[dir="auto"]', function (name) {
+  var hint = name.parentElement.querySelector('.kw-top-bar-profile-hint');
+  if (hint) return;
+  hint = document.createElement('span');
+  hint.className = 'kw-top-bar-profile-hint';
+  hint.textContent = 'View my profile';
+  name.after(hint);
 });
 
 // The profile card shows the user's name (kept) above "See all profiles" and a
