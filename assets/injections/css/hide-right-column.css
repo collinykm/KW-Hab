@@ -1,0 +1,4 @@
+/* Hide the right-hand column on the home feed (Sponsored, birthdays, contacts). */
+div[role="complementary"] {
+  display: none !important;
+}
