@@ -1,0 +1,101 @@
+/* The "sensitive info" warning from js/sensitive-info.js. */
+.kw-sensitive {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.kw-sensitive[hidden] {
+  display: none;
+}
+
+.kw-sensitive__box {
+  box-sizing: border-box;
+  width: min(32rem, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: 28px 28px 24px;
+  border-radius: 12px;
+  background: var(--card-background, #fff);
+  color: var(--primary-text, #050505);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  font-family: inherit;
+}
+
+.kw-sensitive__icon {
+  display: block;
+  margin: 0 auto 8px;
+}
+
+.kw-sensitive__title {
+  margin: 0 0 12px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.kw-sensitive__text {
+  margin: 0 0 12px;
+  font-size: 1.1875rem;
+  line-height: 1.4;
+}
+
+.kw-sensitive__kinds {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--primary-text, #050505);
+}
+
+.kw-sensitive__kinds:empty {
+  display: none;
+}
+
+.kw-sensitive__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.kw-sensitive__button {
+  flex: 1 1 10rem;
+  min-height: calc(48px * var(--kw-button-scale, 1));
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 1.125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.kw-sensitive__button:focus-visible {
+  outline: 3px solid var(--accent, #0866ff);
+  outline-offset: 3px;
+}
+
+/* Going back is the safe choice, so it's the main (blue) button. */
+.kw-sensitive__button--no {
+  background: #0866ff;
+  color: #fff;
+}
+
+.kw-sensitive__button--yes {
+  background: var(--secondary-button-background, #e4e6eb);
+  color: var(--primary-text, #050505);
+}
+
+.kw-sensitive__button:hover {
+  filter: brightness(0.94);
+}

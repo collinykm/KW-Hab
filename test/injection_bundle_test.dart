@@ -24,6 +24,12 @@ void main() {
     expect(script, contains('window.kwHab'));
   });
 
+  test('sensitive info warning ships its css, js and popup template', () {
+    expect(bundle.css.keys, contains('sensitive-info'));
+    expect(bundle.js.keys, contains('sensitive-info'));
+    expect(bundle.html['sensitive-info'], contains('Do you want to proceed?'));
+  });
+
   test('one user script per js area, plus css bootstrap and runtime', () {
     expect(bundle.userScripts(), hasLength(2 + bundle.js.length));
   });
