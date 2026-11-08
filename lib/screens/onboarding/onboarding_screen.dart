@@ -410,7 +410,10 @@ class _SwitchRow extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(child: _RowLabel(title: title, subtitle: subtitle)),
               const SizedBox(width: 12),
-              Switch(value: value, onChanged: onChanged),
+              ScaledControl(
+                normalSize: const Size(60, 40),
+                child: Switch(value: value, onChanged: onChanged),
+              ),
             ],
           ),
         ),
@@ -590,8 +593,12 @@ class _ContactEditor extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Radio<ContactMethod>(key: Key('contact$index-prefers-${m.name}'), value: m),
-                Icon(icon, size: 20, color: selected ? KwColors.blue : KwColors.secondaryText),
+                ScaledControl(
+                  normalSize: const Size(40, 40),
+                  child: Radio<ContactMethod>(key: Key('contact$index-prefers-${m.name}'), value: m),
+                ),
+                Icon(icon, size: 20 * SettingsScope.of(context).accessibility.buttonScale,
+                    color: selected ? KwColors.blue : KwColors.secondaryText),
                 const SizedBox(width: 6),
                 Text(label, style: text.bodyLarge),
               ],

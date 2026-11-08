@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'accessibility_settings.dart';
+import 'settings_scope.dart';
 
 /// The app's look for native Flutter screens (onboarding, dialogs, error
 /// pages): Facebook-like colours and shapes, so moving between Facebook and
@@ -115,7 +116,8 @@ ThemeData buildAppTheme(AccessibilitySettings a) {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: KwColors.card,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      // Text boxes are click targets too: taller with the button size.
+      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14 * s),
       labelStyle: const TextStyle(color: KwColors.secondaryText),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(6),
@@ -140,20 +142,43 @@ ThemeData buildAppTheme(AccessibilitySettings a) {
       fillColor: WidgetStateProperty.resolveWith(
           (st) => st.contains(WidgetState.selected) ? KwColors.blue : KwColors.secondaryText),
     ),
-    sliderTheme: const SliderThemeData(
+    sliderTheme: SliderThemeData(
       activeTrackColor: KwColors.blue,
       inactiveTrackColor: KwColors.secondaryButton,
       thumbColor: KwColors.blue,
       activeTickMarkColor: Colors.white70,
       inactiveTickMarkColor: KwColors.divider,
-      trackHeight: 6,
+      trackHeight: 6 * s,
+      thumbShape: RoundSliderThumbShape(enabledThumbRadius: 10 * s),
+      overlayShape: RoundSliderOverlayShape(overlayRadius: 24 * s),
       showValueIndicator: ShowValueIndicator.never,
     ),
-    // Checkboxes, switches and radios have no size setting; their tap area
-    // grows with visual density instead (max +4 = 16px).
+    // Extra tap area for checkboxes, radios and list tiles (max +4 = 16px).
+    // Switches and radios are also drawn bigger with [ScaledControl].
     visualDensity: VisualDensity(
       horizontal: ((s - 1) * 4).clamp(0, 4).toDouble(),
       vertical: ((s - 1) * 4).clamp(0, 4).toDouble(),
     ),
   );
+}
+
+/// Draws a control that has no size setting of its own (Switch, Radio,
+/// Checkbox) bigger by the user's button size, for people who find small
+/// targets hard to hit. [normalSize] is roughly the control's usual size.
+class ScaledControl extends StatelessWidget {
+  const ScaledControl({super.key, required this.normalSize, required this.child});
+
+  final Size normalSize;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = SettingsScope.of(context).accessibility.buttonScale;
+    if (s == 1) return child;
+    return SizedBox(
+      width: normalSize.width * s,
+      height: normalSize.height * s,
+      child: FittedBox(child: child),
+    );
+  }
 }

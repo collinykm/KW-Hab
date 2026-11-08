@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../injections/injection_bundle.dart';
+import '../settings/settings_scope.dart';
 import 'downloads.dart';
 import 'page_bridge.dart';
 import 'url_routing.dart';
@@ -169,13 +170,13 @@ class _FacebookWebViewState extends State<FacebookWebView> {
             child: Column(
               children: [
                 Container(
-                  height: 40,
+                  height: 40 * SettingsScope.of(dialogContext).accessibility.buttonScale,
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   alignment: Alignment.centerRight,
                   color: const Color(0xFFF0F2F5),
                   child: IconButton(
                     tooltip: 'Close',
-                    iconSize: 18,
+                    iconSize: 18 * SettingsScope.of(dialogContext).accessibility.buttonScale,
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.of(dialogContext).pop(),
                   ),

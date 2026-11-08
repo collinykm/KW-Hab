@@ -37,10 +37,16 @@ without a reload):
   `html[data-kw-bold-text]`, `html[data-kw-read-aloud]`, `html[data-kw-talk-to-type]`
   attributes (present only when that feature is on).
 
-`css/accessibility.css` already applies text size and bold text to the whole
-page. Button size isn't applied globally: scale the controls your area owns,
-e.g. `min-height: calc(40px * var(--kw-button-scale, 1))`. Support contacts
-are deliberately not available here (Facebook can read the page).
+`css/accessibility.css` applies text size and bold text to the whole page.
+`js/tap-targets.js` + `css/tap-targets.css` apply button size to everything
+clickable: short controls (icons, "Like 62", tabs) are zoomed whole, wide ones
+made taller (with their content zoomed if it's short), links in text get a
+bigger invisible hit area, wrappers with a fixed size are grown to fit, and
+rows whose controls get pushed out of view wrap onto a second line. Controls you add get this automatically. If a scaled control breaks
+your area's layout, fix it in your area's CSS under `html[data-kw-big-taps]`,
+or opt an element out by giving it `data-kw-tap="big"` before it renders.
+Support contacts are deliberately not available here (Facebook can read the
+page).
 
 ## Seeing changes
 
