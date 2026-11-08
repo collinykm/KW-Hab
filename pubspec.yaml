@@ -37,6 +37,8 @@ dependencies:
   flutter_inappwebview: ^6.2.0-beta.3
   url_launcher: ^6.3.3
   path_provider: ^2.1.6
+  http: ^1.6.0
+  flutter_dotenv: ^6.0.1
 
 dev_dependencies:
   flutter_test:
@@ -67,6 +69,7 @@ flutter:
     - assets/injections/css/
     - assets/injections/js/
     - assets/injections/html/
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:

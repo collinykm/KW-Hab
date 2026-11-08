@@ -1,0 +1,253 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:kw_hab/monitoring/conversation.dart';
+import 'package:kw_hab/monitoring/gemini_safety_classifier.dart';
+import 'package:kw_hab/monitoring/message_monitor.dart';
+import 'package:kw_hab/monitoring/safety_classifier.dart';
+import 'package:kw_hab/monitoring/staff_notifier.dart';
+
+ConversationSnapshot snapshot(List<(bool, String)> messages, {String id = 'thread:1'}) =>
+    ConversationSnapshot(
+      conversationId: id,
+      title: 'Sam',
+      messages: [for (final (fromUser, text) in messages) MonitoredMessage(fromUser: fromUser, text: text)],
+    );
+
+const safe = SafetyAssessment(
+  notifyStaff: false,
+  category: ConcernCategory.none,
+  severity: ConcernSeverity.none,
+  reason: '',
+);
+
+const flagged = SafetyAssessment(
+  notifyStaff: true,
+  category: ConcernCategory.scamOrMoney,
+  severity: ConcernSeverity.high,
+  reason: 'Asking for gift cards.',
+  flaggedMessages: [1],
+);
+
+class FakeClassifier implements SafetyClassifier {
+  FakeClassifier([this.result = safe]);
+  SafetyAssessment result;
+  Object? error;
+  final List<ConversationSnapshot> seen = [];
+  Completer<void>? gate;
+
+  @override
+  Future<SafetyAssessment> assess(ConversationSnapshot conversation) async {
+    seen.add(conversation);
+    if (gate != null) await gate!.future;
+    if (error != null) throw error!;
+    return result;
+  }
+}
+
+class FakeNotifier implements StaffNotifier {
+  final List<StaffAlert> alerts = [];
+  @override
+  Future<void> notify(StaffAlert alert) async => alerts.add(alert);
+}
+
+void main() {
+  group('ConversationSnapshot', () {
+    test('parses the page payload', () {
+      final s = ConversationSnapshot.fromJson({
+        'conversationId': 'thread:42',
+        'title': 'Sam',
+        'url': 'https://www.facebook.com/messages/t/42',
+        'messages': [
+          {'fromUser': false, 'sender': 'Sam', 'text': 'hi'},
+          {'fromUser': true, 'sender': null, 'text': 'hello'},
+        ],
+      });
+      expect(s.conversationId, 'thread:42');
+      expect(s.messages.map((m) => m.text), ['hi', 'hello']);
+      expect(s.messages.first.sender, 'Sam');
+      expect(s.hasIncoming, isTrue);
+    });
+
+    test('rejects malformed payloads', () {
+      expect(() => ConversationSnapshot.fromJson('nope'), throwsFormatException);
+      expect(() => ConversationSnapshot.fromJson({'conversationId': 'x'}), throwsFormatException);
+      expect(
+        () => ConversationSnapshot.fromJson({
+          'conversationId': 'x',
+          'messages': [
+            {'text': 'no author'}
+          ],
+        }),
+        throwsFormatException,
+      );
+    });
+  });
+
+  group('MessageMonitor', () {
+    late FakeClassifier classifier;
+    late FakeNotifier notifier;
+    late MessageMonitor monitor;
+
+    setUp(() {
+      classifier = FakeClassifier();
+      notifier = FakeNotifier();
+      monitor = MessageMonitor(classifier: classifier, notifier: notifier, cooldown: Duration.zero);
+    });
+    tearDown(() => monitor.dispose());
+
+    test('sends only the last 20 messages', () async {
+      await monitor.submit(snapshot([for (var i = 0; i < 30; i++) (i.isEven, 'm$i')]));
+      expect(classifier.seen.single.messages, hasLength(20));
+      expect(classifier.seen.single.messages.first.text, 'm10');
+    });
+
+    test('skips conversations with nothing from anyone else', () async {
+      await monitor.submit(snapshot([(true, 'hello?')]));
+      expect(classifier.seen, isEmpty);
+    });
+
+    test('does not check the same messages twice', () async {
+      await monitor.submit(snapshot([(false, 'hi')]));
+      await monitor.submit(snapshot([(false, 'hi')]));
+      expect(classifier.seen, hasLength(1));
+      await monitor.submit(snapshot([(false, 'hi'), (true, 'hey')]));
+      expect(classifier.seen, hasLength(2));
+    });
+
+    test('notifies staff only when flagged', () async {
+      await monitor.submit(snapshot([(false, 'hi')]));
+      expect(notifier.alerts, isEmpty);
+
+      classifier.result = flagged;
+      await monitor.submit(snapshot([(false, 'hi'), (false, 'buy me gift cards')]));
+      expect(notifier.alerts.single.flaggedMessages.single.text, 'buy me gift cards');
+      expect(notifier.alerts.single.summary, contains('Asking for gift cards.'));
+    });
+
+    test('retries messages whose check failed', () async {
+      classifier.error = Exception('offline');
+      await monitor.submit(snapshot([(false, 'hi')]));
+      classifier.error = null;
+      await monitor.submit(snapshot([(false, 'hi')]));
+      expect(classifier.seen, hasLength(2));
+    });
+
+    test('coalesces snapshots that arrive during a check', () async {
+      classifier.gate = Completer<void>();
+      final first = monitor.submit(snapshot([(false, 'a')]));
+      await monitor.submit(snapshot([(false, 'a'), (false, 'b')]));
+      await monitor.submit(snapshot([(false, 'a'), (false, 'b'), (false, 'c')]));
+      classifier.gate!.complete();
+      await first;
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(classifier.seen.map((s) => s.messages.length), [1, 3]);
+    });
+
+    test('waits out the cooldown per conversation', () async {
+      monitor = MessageMonitor(
+        classifier: classifier,
+        notifier: notifier,
+        cooldown: const Duration(milliseconds: 100),
+      );
+      await monitor.submit(snapshot([(false, 'a')]));
+      await monitor.submit(snapshot([(false, 'a'), (false, 'b')]));
+      await monitor.submit(snapshot([(false, 'x')], id: 'thread:2'));
+      expect(classifier.seen.map((s) => s.conversationId), ['thread:1', 'thread:2']);
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      expect(classifier.seen, hasLength(3));
+      expect(classifier.seen.last.messages, hasLength(2));
+    });
+  });
+
+  group('GeminiSafetyClassifier', () {
+    String geminiReply(Map<String, Object?> answer, {String status = 'completed'}) => jsonEncode({
+          'status': status,
+          'object': 'interaction',
+          'steps': [
+            {'type': 'thought', 'signature': 'abc'},
+            {
+              'type': 'model_output',
+              'content': [
+                {'type': 'text', 'text': jsonEncode(answer)}
+              ],
+            },
+          ],
+        });
+
+    test('sends the transcript and parses the answer', () async {
+      late http.Request sent;
+      final classifier = GeminiSafetyClassifier(
+        apiKey: 'test-key',
+        model: 'test-model',
+        client: MockClient((request) async {
+          sent = request;
+          return http.Response(
+            geminiReply({
+              'notifyStaff': true,
+              'category': 'personalInfoRequest',
+              'severity': 'medium',
+              'reason': 'Asked for a login code.',
+              'flaggedMessages': [0],
+            }),
+            200,
+          );
+        }),
+      );
+
+      final result = await classifier.assess(snapshot([(false, 'send me the code'), (true, 'ok')]));
+
+      expect(sent.url.path, '/v1beta/interactions');
+      expect(sent.headers['x-goog-api-key'], 'test-key');
+      expect(sent.headers['Api-Revision'], GeminiSafetyClassifier.apiRevision);
+      expect(sent.url.query, isNot(contains('test-key')));
+      final body = jsonDecode(sent.body) as Map;
+      expect(body['model'], 'test-model');
+      expect(body['store'], isFalse);
+      expect(body['system_instruction'], GeminiSafetyClassifier.systemPrompt);
+      expect(body['input'], contains('"from": "other"'));
+      expect(body['input'], contains('send me the code'));
+      expect(body['response_format']['mime_type'], 'application/json');
+
+      expect(result.notifyStaff, isTrue);
+      expect(result.category, ConcernCategory.personalInfoRequest);
+      expect(result.severity, ConcernSeverity.medium);
+      expect(result.flaggedMessages, [0]);
+    });
+
+    test('ignores thought steps', () {
+      final result = GeminiSafetyClassifier.parseResponse(geminiReply({
+        'notifyStaff': false,
+        'category': 'none',
+        'severity': 'none',
+        'reason': '',
+        'flaggedMessages': [],
+      }));
+      expect(result.notifyStaff, isFalse);
+    });
+
+    test('throws on HTTP errors, unfinished interactions and unreadable answers', () async {
+      final failing = GeminiSafetyClassifier(
+        apiKey: 'k',
+        client: MockClient((_) async =>
+            http.Response('{"error":{"message":"API key not valid"}}', 400)),
+      );
+      await expectLater(
+        failing.assess(snapshot([(false, 'hi')])),
+        throwsA(isA<SafetyClassifierException>()
+            .having((e) => e.message, 'message', contains('API key not valid'))),
+      );
+      expect(
+        () => GeminiSafetyClassifier.parseResponse(geminiReply({}, status: 'failed')),
+        throwsA(isA<SafetyClassifierException>()),
+      );
+      expect(
+        () => GeminiSafetyClassifier.parseResponse(geminiReply({'category': 'none'})),
+        throwsA(isA<SafetyClassifierException>()),
+      );
+    });
+  });
+}
