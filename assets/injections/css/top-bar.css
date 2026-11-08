@@ -44,6 +44,20 @@ div[role="navigation"][aria-label="Account Controls and Settings"] > :has([aria-
   opacity: 0 !important;
 }
 
+/* Friends tab: js/top-bar.js points it at the user's own friends grid (a
+ * profile page, which Facebook doesn't mark as Friends), and marks the tab
+ * [data-kw-active] there. It is drawn selected, as Facebook draws it on its
+ * Friends page: the bar under it, and a blue icon and label. */
+.kw-top-bar-friends[data-kw-active] .kw-top-bar-indicator {
+  transform: none !important;
+}
+.kw-top-bar-friends[data-kw-active] svg {
+  --x-color: var(--primary-button-background) !important;
+}
+.kw-top-bar-friends[data-kw-active] .kw-top-bar-label {
+  color: var(--primary-button-background);
+}
+
 /* Text labels under the icons (added by js/top-bar.js). */
 .kw-top-bar-label {
   display: block;

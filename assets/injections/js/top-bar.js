@@ -3,7 +3,8 @@
 // Middle: adds Messages and Saved tabs after Reels, built by cloning
 // Facebook's Reels tab so they look the same. Messages opens full-screen
 // Messenger (/messages/); Saved opens the user's saved posts (/saved/), which
-// was only reachable from the hidden left column.
+// was only reachable from the hidden left column. The Friends tab opens the
+// user's own friends grid instead of Facebook's Friends home page.
 // Every tab, and the profile button, gets a text label under its icon.
 //
 // Profile menu: keeps the profile name link (with a "View my profile" hint),
@@ -101,6 +102,51 @@ kwHab.onElement(MAIN_NAV + ' a[aria-label="Reels"]', function (reels) {
 });
 
 kwHab.onNavigate(updateAddedTabs);
+
+// ---- Friends tab ----------------------------------------------------------
+// Opens the user's own friends grid (the Friends tab of their profile, trimmed
+// by js/profile-sections.js) instead of Facebook's Friends home page, so their
+// friends are one click away. Friend requests are reached from the Friends
+// card's own link (js/friend-requests.js adds the new-request count to it).
+// While the grid is open the tab is drawn selected,
+// since Facebook doesn't count a profile page as being in Friends.
+
+var FRIENDS_TAB = MAIN_NAV + ' a[aria-label^="Friends"]';
+
+function friendsUrl() {
+  var m = document.cookie.match(/(?:^|;\s*)c_user=(\d+)/);
+  return m ? '/profile.php?id=' + m[1] + '&sk=friends' : '/me/friends';
+}
+
+// Ahead of Facebook's own handler, which would open the Friends home page.
+document.addEventListener('click', function (e) {
+  var link = e.target.closest && e.target.closest(FRIENDS_TAB);
+  if (!link) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  location.href = friendsUrl();
+}, true);
+
+// The user's own profile (only it has "Edit profile"), on a Friends section.
+function onOwnFriendsGrid() {
+  var url = new URL(location.href);
+  var section = url.searchParams.get('sk') || url.pathname.split('/').filter(Boolean).slice(1).pop() || '';
+  return /^friends/.test(section) && !!document.querySelector('[role="main"] [aria-label="Edit profile"]');
+}
+
+function updateFriendsTab() {
+  var link = document.querySelector(FRIENDS_TAB);
+  var tab = link && link.closest('li');
+  if (!tab) return;
+  tab.classList.add('kw-top-bar-friends');
+  if (link.previousElementSibling) link.previousElementSibling.classList.add('kw-top-bar-indicator');
+  if (onOwnFriendsGrid()) tab.setAttribute('data-kw-active', '');
+  else tab.removeAttribute('data-kw-active');
+}
+
+kwHab.onElement(FRIENDS_TAB, updateFriendsTab);
+kwHab.onElement('[role="main"] [aria-label="Edit profile"]', updateFriendsTab);
+kwHab.onNavigate(updateFriendsTab);
 
 // ---- Profile button -------------------------------------------------------
 

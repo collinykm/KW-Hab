@@ -1,6 +1,6 @@
 /* Tagged by js/profile-tabs.js: the tabs a profile doesn't keep (other
    people's keep All, About, Friends, Photos and Reels; the user's own keeps
-   About, Photos, Reels and an added Groups tab), the "See recommendations"
+   All (renamed Posts), About, Photos, Reels and an added Groups tab), the "See recommendations"
    chevron, the "•••" and the "People You May Know" panel. */
 [data-kw-hidden="profile-tab"] {
   display: none !important;

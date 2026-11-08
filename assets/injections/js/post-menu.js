@@ -28,12 +28,23 @@ function ownId() {
   return m ? m[1] : null;
 }
 
+// Links to the user's own profile that are buttons, not their name ("Edit
+// profile" on their profile page links there too).
+var NOT_A_NAME = /^(Edit profile|View( your)? profile|See all|See more|Profile|Posts|About|Friends|Photos|Reels|Groups|Edit|Add to story)$/i;
+
 function storedName() {
-  try { return localStorage.getItem(NAME_KEY); } catch (e) { return null; }
+  var name = null;
+  try { name = localStorage.getItem(NAME_KEY); } catch (e) { /* private mode */ }
+  // A wrong guess remembered before NOT_A_NAME existed is forgotten.
+  return name && !NOT_A_NAME.test(name) ? name : null;
 }
 
 function storeName(name) {
-  if (!name || name === storedName()) return;
+  var stored = storedName();
+  if (!name || name === stored) return;
+  // Keep a full name over its first name ("Lucas Guo" over "Lucas"): with only
+  // a first name, any post by someone else with that first name counts as own.
+  if (stored && stored.indexOf(name + ' ') === 0) return;
   try { localStorage.setItem(NAME_KEY, name); } catch (e) { /* private mode */ }
   kwHab.log('post-menu', 'own name:', name);
   document.querySelectorAll(POST_MENU).forEach(markIfOwn);
@@ -45,7 +56,9 @@ function learnName() {
     var links = document.querySelectorAll('a[href*="' + id + '"]');
     for (var i = 0; i < links.length; i++) {
       var text = (links[i].textContent || '').trim();
-      if (text && text.length < 60 && !/\d/.test(text)) return storeName(text);
+      if (!text || text.length >= 60 || /\d/.test(text) || NOT_A_NAME.test(text)) continue;
+      if (/edit/i.test(links[i].getAttribute('href') || '')) continue;
+      return storeName(text);
     }
   }
 }
