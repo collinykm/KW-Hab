@@ -51,14 +51,24 @@ class SupportContact {
   /// The method to actually use: [preferredMethod] if its details were
   /// entered, otherwise whichever details exist (phone first). Null if this
   /// person can't be reached.
-  ContactMethod? get contactMethod {
-    final preferred = preferredMethod;
-    if (preferred != null && canUse(preferred)) return preferred;
-    for (final m in ContactMethod.values) {
-      if (canUse(m)) return m;
+  ContactMethod? get contactMethod => reachableBy(ContactMethod.values);
+
+  /// Like [contactMethod], limited to [available] methods (e.g. the ones the
+  /// app can actually send by).
+  ContactMethod? reachableBy(Iterable<ContactMethod> available) {
+    for (final m in methodsInOrder) {
+      if (available.contains(m)) return m;
     }
     return null;
   }
+
+  /// Every method whose details were entered: [preferredMethod] first, then
+  /// the rest (phone first) as backups.
+  List<ContactMethod> get methodsInOrder => [
+        if (preferredMethod case final p? when canUse(p)) p,
+        for (final m in ContactMethod.values)
+          if (m != preferredMethod && canUse(m)) m,
+      ];
 
   /// Phone number or email for [method].
   String addressFor(ContactMethod method) => switch (method) {

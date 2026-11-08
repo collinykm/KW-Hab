@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 
@@ -12,9 +13,12 @@ import 'staff_notifier.dart';
 ///
 /// Limits on what reaches Gemini:
 /// - only conversations with at least one message from someone else;
-/// - never the same set of messages twice;
+/// - only when there's a new message at the bottom. The page sends a snapshot
+///   whenever the visible messages change, which includes scrolling back
+///   through older ones (Messenger only renders the rows on screen) and
+///   re-renders; those are skipped;
 /// - at most one request per conversation per [cooldown]. Snapshots that arrive
-///   during it are coalesced, and only the latest is checked when it ends.
+///   in the meantime are coalesced, and only the latest is checked.
 class MessageMonitor {
   MessageMonitor({
     required this.classifier,
@@ -28,42 +32,64 @@ class MessageMonitor {
   final int maxMessages;
   final Duration cooldown;
 
-  static const int _maxRemembered = 1000;
-  final Set<int> _checked = <int>{};
   final Map<String, _ConversationState> _conversations = {};
 
   /// Queues [snapshot] for checking. Returns once it has been checked, skipped,
-  /// or folded into a later check.
-  Future<void> submit(ConversationSnapshot snapshot) async {
+  /// or queued for a later check.
+  Future<void> submit(ConversationSnapshot snapshot) {
     final window = snapshot.lastMessages(maxMessages);
-    if (!window.hasIncoming || _checked.contains(window.fingerprint)) return;
-
+    if (!window.hasIncoming) return Future.value();
     final state = _conversations.putIfAbsent(window.conversationId, _ConversationState.new);
-    if (state.busy) {
-      state.pending = window; // picked up when the running check finishes
-      return;
-    }
-    final waited = state.lastRun == null ? null : DateTime.now().difference(state.lastRun!);
-    if (waited != null && waited < cooldown) {
-      state.pending = window;
-      _schedulePending(state, cooldown - waited);
-      return;
-    }
-    await _check(state, window);
+    return _consider(state, window);
   }
 
-  void _schedulePending(_ConversationState state, Duration delay) {
+  Future<void> _consider(_ConversationState state, ConversationSnapshot window) async {
+    final keys = _messageKeys(window);
+    final lastSeen = keys.lastIndexWhere(state.seen.contains);
+    if (lastSeen == keys.length - 1) {
+      // The same messages again, or older ones the user scrolled back to.
+      state.see(keys);
+      _log('${window.conversationId}: nothing new at the bottom, not asking Gemini');
+      return;
+    }
+    if (state.busy) {
+      state.pending = window; // reconsidered when the running check finishes
+      return;
+    }
+
+    if (state.lastRun case final lastRun?) {
+      final rest = cooldown - DateTime.now().difference(lastRun);
+      if (rest > Duration.zero) {
+        _queue(state, window, rest);
+        return;
+      }
+    }
+    await _check(state, window, keys);
+  }
+
+  /// Checks the latest pending window once [delay] (the rest of the
+  /// cooldown) is up.
+  void _queue(_ConversationState state, ConversationSnapshot window, Duration delay) {
+    state.pending = window;
     state.timer ??= Timer(delay, () {
       state.timer = null;
       final next = state.pending;
       state.pending = null;
-      if (next != null) unawaited(submit(next));
+      if (next != null) unawaited(_consider(state, next));
     });
   }
 
-  Future<void> _check(_ConversationState state, ConversationSnapshot window) async {
+  Future<void> _check(
+    _ConversationState state,
+    ConversationSnapshot window,
+    List<int> keys,
+  ) async {
+    // This is the newest window, so it covers anything queued.
+    state.timer?.cancel();
+    state.timer = null;
+    state.pending = null;
     state.busy = true;
-    _remember(window.fingerprint);
+    final added = state.see(keys);
     try {
       _log('${window.conversationId}: asking Gemini about ${window.messages.length} messages');
       final assessment = await classifier.assess(window);
@@ -73,18 +99,26 @@ class MessageMonitor {
       }
     } catch (e) {
       // Let a later snapshot of the same messages try again.
-      _checked.remove(window.fingerprint);
+      state.seen.removeAll(added);
       _log('${window.conversationId}: check failed: $e');
     } finally {
       state.busy = false;
       state.lastRun = DateTime.now();
-      if (state.pending != null) _schedulePending(state, cooldown);
+      final next = state.pending;
+      state.pending = null;
+      if (next != null) unawaited(_consider(state, next));
     }
   }
 
-  void _remember(int fingerprint) {
-    if (_checked.length >= _maxRemembered) _checked.remove(_checked.first);
-    _checked.add(fingerprint);
+  /// Identifies each message by its content and the message before it, so a
+  /// repeated "ok" after something new still counts as new.
+  static List<int> _messageKeys(ConversationSnapshot window) {
+    int content(MonitoredMessage m) => Object.hash(m.fromUser, m.sender, m.text);
+    final messages = window.messages;
+    return [
+      for (var i = 0; i < messages.length; i++)
+        Object.hash(content(messages[i]), i == 0 ? null : content(messages[i - 1])),
+    ];
   }
 
   /// Cancels pending checks.
@@ -100,8 +134,22 @@ class MessageMonitor {
 }
 
 class _ConversationState {
+  static const int _maxSeen = 500;
+
   bool busy = false;
   DateTime? lastRun;
   ConversationSnapshot? pending;
   Timer? timer;
+
+  /// Keys of messages already checked (or scrolled past), oldest first.
+  final LinkedHashSet<int> seen = LinkedHashSet<int>();
+
+  /// Marks [keys] seen and returns the ones that weren't.
+  List<int> see(List<int> keys) {
+    final added = [for (final k in keys) if (seen.add(k)) k];
+    while (seen.length > _maxSeen) {
+      seen.remove(seen.first);
+    }
+    return added;
+  }
 }

@@ -22,6 +22,20 @@ enum ConcernCategory {
 
   static ConcernCategory parse(Object? value) =>
       values.firstWhere((c) => c.name == value, orElse: () => other);
+
+  /// Plain words for alerts.
+  String get label => switch (this) {
+        none => 'No concern',
+        scamOrMoney => 'Possible scam or money request',
+        personalInfoRequest => 'Request for personal information',
+        sexualContent => 'Sexual content',
+        groomingOrManipulation => 'Grooming or manipulation',
+        harassmentOrBullying => 'Harassment or bullying',
+        threatsOrViolence => 'Threats or violence',
+        selfHarmOrAbuse => 'Self-harm or abuse',
+        suspiciousLink => 'Suspicious link',
+        other => 'Other concern',
+      };
 }
 
 enum ConcernSeverity {

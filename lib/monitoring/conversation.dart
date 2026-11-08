@@ -45,13 +45,6 @@ class ConversationSnapshot {
           url: url,
           messages: messages.sublist(messages.length - count),
         );
-
-  /// Identifies this exact set of messages, so the same window isn't sent to
-  /// Gemini twice.
-  int get fingerprint => Object.hash(
-        conversationId,
-        Object.hashAll(messages.map((m) => Object.hash(m.fromUser, m.text))),
-      );
 }
 
 class MonitoredMessage {
