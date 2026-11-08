@@ -49,7 +49,7 @@ macos/Runner/        native window + menu bar
 
 The full conventions are in `assets/injections/README.md`. The key points:
 - Files are **auto-discovered** from the asset manifest (`InjectionBundle.load`). A new area means new files only, never a shared registry. Files prefixed `_` are ignored (templates). There are no subfolders unless they're added to `pubspec.yaml` `assets:`.
-- Injection order per page: at document start, one `<style data-kw-area="…">` per CSS file (re-added if Facebook replaces `<head>`), then `runtime.js`. At document end, each `js/*.js` file runs as its own user script wrapped in try/catch. HTML files are only used through `kwHab.html()`/`kwHab.fragment()` from JS.
+- Injection order per page: at document start, one `<style data-kw-area="…">` per CSS file (re-added if Facebook replaces `<head>`), then `runtime.js`. Once `<body>` exists, each `js/*.js` file runs as its own user script wrapped in try/catch (it may run before the page has finished arriving). HTML files are only used through `kwHab.html()`/`kwHab.fragment()` from JS.
 - `runtime.js` defines `window.kwHab` (`onNavigate`, `onElement`, `html`, `fragment`, `log`). Facebook is a single-page app with a constantly re-rendered DOM, so area scripts should use `onNavigate`/`onElement` instead of one-off DOM queries or their own observers.
 - Facebook class names are obfuscated and unstable. Select on `role`, `aria-label`, `data-pagelet`, `href`. Prefix created classes/ids with `kw-`.
 - Debug builds set `isInspectable`, so you can right-click the page → Inspect Element. Scripts appear under `kw-hab/…` source URLs.
