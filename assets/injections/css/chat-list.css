@@ -1,0 +1,45 @@
+/* Messenger's chat list: the "Thread list" panel on the left of /messages.
+ *
+ * Hidden:
+ *   - the ⋯ "Settings, help and more" menu at the top (Message requests,
+ *     Archived chats, Preferences and so on);
+ *   - the All / Unread / Groups / Communities tabs (there are two copies of
+ *     the tab row, one for narrow windows), so every chat is under All;
+ *   - the ⋯ "More options for <name>" button on each chat (Mark as unread,
+ *     Mute, Block, Archive, Delete, Report, …). Mute and Block stay in the
+ *     conversation's information panel (css/chat-info.css);
+ *   - the Marketplace chats folder, marked [data-kw-chat-list-hidden] by
+ *     js/chat-list.js because only its text identifies it.
+ *
+ * The New message button gets a text label under its icon. */
+
+[role="navigation"][aria-label="Thread list"] [role="button"][aria-label="Settings, help and more"],
+[role="navigation"][aria-label="Thread list"] [role="tablist"],
+/* …and the padded box around the tab rows, which holds nothing else. */
+[role="navigation"][aria-label="Thread list"] div:has([role="tablist"]):not(:has(input, a, [role="grid"], [role="button"]:not([role="tablist"] *))),
+[role="grid"][aria-label="Chats"] [role="button"][aria-label^="More options for "],
+[data-kw-chat-list-hidden] {
+  display: none !important;
+}
+
+[role="navigation"][aria-label="Thread list"] a[aria-label="New message"] {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 36px !important;
+  padding: 4px 8px !important;
+  border-radius: 8px !important;
+}
+
+[role="navigation"][aria-label="Thread list"] a[aria-label="New message"]::after {
+  content: "New message";
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 14px;
+  white-space: nowrap;
+  color: var(--secondary-text, #65676b);
+}
