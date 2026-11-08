@@ -1,0 +1,100 @@
+/* Comment sections (post dialogs, the feed, reels). Every comment and reply is
+ * a div[role="article"] labelled "Comment by …" / "Reply by …".
+ * - Author: only the profile picture and name, both larger. js/comments.js
+ *   marks the rest of the name row (the "· 1d" timestamp, badges).
+ * - No "Most relevant" sort menu and no "6 of 1,205" count (marked by
+ *   js/comments.js).
+ * - Under each comment: Like and Reply stay. The Share button (marked by
+ *   js/comments.js) and the reaction count ("👍 5") are hidden.
+ * - "See more" and "Reply" are drawn as boxed buttons.
+ * - Comment box: only the send button, with a "Send" label under it. The
+ *   user's own avatar is a plain picture, not the switch-profile button. */
+
+/* Everything js/comments.js marks as not kept. */
+[data-kw-comments-hidden] {
+  display: none !important;
+}
+
+/* ---- Author ------------------------------------------------------------- */
+
+/* The avatar svg draws at fixed coordinates, so resizing it would crop the
+ * picture. zoom scales the whole avatar column and its layout together. */
+[role="article"][aria-label] > div:first-child:has(svg[data-visualcompletion="ignore-dynamic"]) {
+  zoom: 1.3;
+}
+
+.kw-comments-name,
+.kw-comments-name span {
+  font-size: 17px !important;
+  line-height: 22px !important;
+}
+
+/* ---- Reaction count ----------------------------------------------------- */
+
+[role="article"][aria-label] [role="button"][aria-label$="see who reacted to this"] {
+  display: none !important;
+}
+
+/* ---- See more and Reply ------------------------------------------------- */
+
+/* The truncated comment text ends in "… See more", a bare text button.
+ * Reply (marked by js/comments.js) is a bare text button too.
+ * Everything is !important: this sheet loads before Facebook's, and their
+ * single-class rules (border: none, padding: 0) would otherwise win. */
+[role="article"][aria-label] div[dir="auto"] > div[role="button"],
+.kw-comments-reply {
+  display: inline-block !important;
+  margin: 4px 0 0 2px !important;
+  padding: 2px 10px !important;
+  border: 2px solid var(--primary-button-background) !important;
+  border-radius: 8px !important;
+  color: var(--primary-button-background) !important;
+  font-weight: 600 !important;
+  line-height: 20px !important;
+}
+.kw-comments-reply {
+  margin: 0 0 0 4px !important; /* sits in the row with Like, not under text */
+}
+[role="article"][aria-label] div[dir="auto"] > div[role="button"]:hover,
+.kw-comments-reply:hover {
+  background-color: var(--hover-overlay) !important;
+  text-decoration: none !important;
+}
+
+/* ---- Comment box -------------------------------------------------------- */
+
+/* The user's avatar next to the box opens a switch-profile menu. Keep the
+ * picture but make it inert, and drop its chevron badge (js/comments.js also
+ * fills the notch the badge cuts out of the picture). */
+[role="button"][aria-label="Switch to a different profile or Page"],
+.kw-comments-own-avatar {
+  pointer-events: none !important;
+  cursor: default !important;
+}
+.kw-comments-own-avatar div[data-visualcompletion="ignore"] {
+  display: none !important;
+}
+
+/* Avatar sticker, emoji, photo, GIF and sticker buttons. */
+form ul[data-id="unfocused-state-actions-list"] {
+  display: none !important;
+}
+
+#focused-state-composer-submit [role="button"] {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  width: auto !important;
+  height: auto !important;
+  padding: 4px 8px !important;
+  border-radius: 8px !important;
+}
+.kw-comments-send-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 16px;
+  color: inherit;
+  pointer-events: none;
+}
