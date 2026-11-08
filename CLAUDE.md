@@ -38,6 +38,7 @@ CocoaPods is **not** installed on this machine. Every plugin must support Swift 
 assets/injections/   Facebook UI customizations: css/, js/, html/ (one file per area) + runtime.js
 lib/injections/      InjectionBundle: discovers those assets and turns them into WKUserScripts
 lib/shell/           the web view host: window, navigation/link routing, popups, downloads, native bridge
+lib/monitoring/      message monitoring: Messenger snapshots -> Gemini -> staff alert (Gemini key in git-ignored `.env`, copy `.env.example`)
 lib/app.dart         root widget; native Flutter screens (e.g. a custom login/onboarding under lib/screens/) route from here
 macos/Runner/        native window + menu bar
 ```
@@ -57,6 +58,7 @@ The full conventions are in `assets/injections/README.md`. The key points:
 - `url_routing.dart`: hosts in `kInAppDomains` stay in-app. Other main-frame navigations and new windows open in the default browser. Facebook's `l.facebook.com/l.php?u=` link shim is unwrapped first.
 - User agent: a Safari `Version/… Safari/…` suffix is appended so Facebook serves the full desktop site.
 - Downloads: the plugin cancels WebKit downloads natively, so `downloads.dart` re-fetches the file with the web view's cookies into `~/Downloads`.
+- Page bridges (`page_bridge.dart`): Dart services that page JS calls via `window.flutter_inappwebview.callHandler`. Built in `main.dart`, attached to every web view. Facebook's scripts can call them too, so treat arguments as untrusted. The message monitor (`kwMessageMonitor`) is one.
 - Native bridge: the `kw_hab/shell` MethodChannel (`native_shell.dart` ↔ `MainFlutterWindow.swift`). Native → Dart sends `menu` commands (reload/back/forward/home/zoom). Dart → native sends `setTitle`.
 - Shortcuts are native `NSMenu` key equivalents on purpose: when the WKWebView has focus, Flutter never sees key events. Don't replace the xib menu with Flutter's `PlatformMenuBar`, because that drops the Edit menu and breaks copy/paste in the web view.
 - Entitlements (`DebugProfile`/`Release`, keep in sync) need `network.client`, camera, audio-input, user-selected files and downloads access. Camera/mic usage strings are in `Info.plist`.

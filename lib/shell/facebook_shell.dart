@@ -4,13 +4,15 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../injections/injection_bundle.dart';
 import 'facebook_web_view.dart';
 import 'native_shell.dart';
+import 'page_bridge.dart';
 import 'url_routing.dart';
 
 /// The main window: the Facebook web view plus a loading bar and offline screen.
 class FacebookShell extends StatefulWidget {
-  const FacebookShell({super.key, required this.injections});
+  const FacebookShell({super.key, required this.injections, this.bridges = const []});
 
   final InjectionBundle injections;
+  final List<PageBridge> bridges;
 
   @override
   State<FacebookShell> createState() => _FacebookShellState();
@@ -70,6 +72,7 @@ class _FacebookShellState extends State<FacebookShell> {
           Positioned.fill(
             child: FacebookWebView(
               injections: widget.injections,
+              bridges: widget.bridges,
               initialUrl: kHomeUrl,
               onCreated: (c) => _controller = c,
               onProgress: (p) => setState(() => _progress = p),
