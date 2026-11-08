@@ -151,3 +151,11 @@ kwHab.onElement(CLOSE, function (close) {
     widen(dialog);
   }, 250);
 });
+
+// The dialog's header (its title and the close button) is 60px tall, and the
+// close button sits in it 12px from the top. Marked so css/post-dialog.css
+// can make room when the button size makes the close button bigger.
+kwHab.onElement('[role="dialog"] [role="button"][aria-label="Close composer dialog"]', function (close) {
+  var header = close.parentElement && close.parentElement.closest('[role="dialog"]');
+  if (header && !header.querySelector('form')) header.setAttribute('data-kw-post-dialog-header', '');
+});

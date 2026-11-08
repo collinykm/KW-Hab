@@ -65,9 +65,9 @@ html[data-kw-post-menu-busy] :is(
 }
 
 .kw-post-actions :is([data-kw-action], .kw-save)::after {
-  font-size: 13px;
+  font-size: calc(0.8125rem * var(--kw-unzoom, 1));
   font-weight: 600;
-  line-height: 16px;
+  line-height: calc(1rem * var(--kw-unzoom, 1));
   white-space: nowrap;
   color: var(--secondary-text, #65676b);
 }

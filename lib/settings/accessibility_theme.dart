@@ -40,6 +40,16 @@ Widget applyAccessibilityMediaQuery(
   );
 }
 
+/// [size] grown with the user's Text size, for icons and pictures that go with
+/// a line of text (a row's icon, a field's icon), so they don't look tiny
+/// next to bigger words.
+double textSized(BuildContext context, double size) => MediaQuery.textScalerOf(context).scale(size);
+
+/// Icons in buttons that have a label: grown with the button size, or with the
+/// text size if that is bigger, so they keep up with the label.
+double buttonIconSize(AccessibilitySettings a) =>
+    20 * (a.buttonScale > a.textScale ? a.buttonScale : a.textScale);
+
 /// Facebook-like theme, with buttons sized by [AccessibilitySettings.buttonScale].
 ThemeData buildAppTheme(AccessibilitySettings a) {
   final s = a.buttonScale;
@@ -48,7 +58,7 @@ ThemeData buildAppTheme(AccessibilitySettings a) {
   final base = ButtonStyle(
     minimumSize: WidgetStatePropertyAll(Size(64 * s, 36 * s)),
     padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16 * s, vertical: 8 * s)),
-    iconSize: WidgetStatePropertyAll(20 * s),
+    iconSize: WidgetStatePropertyAll(buttonIconSize(a)),
     shape: shape,
     textStyle: label,
     elevation: const WidgetStatePropertyAll(0),

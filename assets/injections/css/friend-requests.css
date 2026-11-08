@@ -9,9 +9,9 @@
   border-radius: 10px;
   background: var(--notification-badge, #e41e3f);
   color: #fff;
-  font-size: 13px;
+  font-size: calc(0.8125rem * var(--kw-unzoom, 1));
   font-weight: 700;
-  line-height: 18px;
+  line-height: calc(1.125rem * var(--kw-unzoom, 1));
   text-align: center;
   vertical-align: middle;
 }

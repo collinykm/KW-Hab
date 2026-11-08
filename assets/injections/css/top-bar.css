@@ -4,6 +4,16 @@
  * Right: only the profile button, whose menu js/top-bar.js trims down.
  * Every middle tab and the profile button get a text label under the icon. */
 
+/* The bar's height: 56px, plus room for bigger buttons and for the labels
+ * under the icons at a bigger text size (40px of icon and padding, scaled
+ * by the button size; 16px of label, by the text size). Facebook lays the
+ * page out below the bar with this variable, and its theme classes set it
+ * again on containers further in, so those are overridden too. */
+:root,
+:root :is(.__fb-light-mode, .__fb-dark-mode) {
+  --header-height: calc(40px * var(--kw-button-scale, 1) + 16px * var(--kw-text-scale, 1)) !important;
+}
+
 /* Middle tabs we don't offer. */
 div[role="navigation"][aria-label="Facebook"] li:has(a[aria-label="Marketplace"]),
 div[role="navigation"][aria-label="Facebook"] li:has(a[aria-label="Gaming"]) {
@@ -61,9 +71,9 @@ div[role="navigation"][aria-label="Account Controls and Settings"] > :has([aria-
 /* Text labels under the icons (added by js/top-bar.js). */
 .kw-top-bar-label {
   display: block;
-  font-size: 13px;
+  font-size: calc(0.8125rem * var(--kw-unzoom, 1));
   font-weight: 600;
-  line-height: 16px;
+  line-height: calc(1rem * var(--kw-unzoom, 1));
   white-space: nowrap;
   color: var(--secondary-text);
   pointer-events: none;
@@ -73,6 +83,22 @@ div[role="navigation"][aria-label="Facebook"] a[role="link"] {
 }
 div[role="navigation"][aria-label="Facebook"] a[aria-current="page"] > .kw-top-bar-label {
   color: var(--primary-button-background);
+}
+
+/* Search box: 40px tall, or a 40px circle in narrow windows and on Messenger,
+ * with the magnifier 12px in from its left end. With a bigger button size
+ * (html[data-kw-big-taps], css/tap-targets.css) it grows taller (its width
+ * is fixed by Facebook) and the magnifier grows with it. */
+html[data-kw-big-taps] div[role="banner"] label:has(> input[role="combobox"]) {
+  min-width: calc(40px * var(--kw-button-scale, 1)) !important;
+  min-height: calc(40px * var(--kw-button-scale, 1)) !important;
+  align-items: center !important;
+}
+html[data-kw-big-taps] div[role="banner"] label:has(> input[role="combobox"]) > span:first-child {
+  padding-left: calc(12px * var(--kw-button-scale, 1)) !important;
+}
+html[data-kw-big-taps] div[role="banner"] label:has(> input[role="combobox"]) > span:first-child svg {
+  zoom: var(--kw-button-scale, 1);
 }
 
 /* Profile button: shrink the 40px avatar so the label fits in the 56px bar. */
@@ -93,8 +119,8 @@ div[role="navigation"][aria-label="Facebook"] a[aria-current="page"] > .kw-top-b
 /* Profile menu: "View my profile" under the user's name. */
 .kw-top-bar-profile-hint {
   display: block;
-  font-size: 13px;
-  line-height: 16px;
+  font-size: calc(0.8125rem * var(--kw-unzoom, 1));
+  line-height: calc(1rem * var(--kw-unzoom, 1));
   color: var(--secondary-text);
 }
 

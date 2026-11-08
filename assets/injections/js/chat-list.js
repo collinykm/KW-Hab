@@ -45,6 +45,18 @@ function showAll() {
   }
 }
 
+// The header row ("Chats" and the New message button) is shorter than the
+// button, which overlaps it a little above and below. Marked so
+// css/chat-list.css can make room when the button size makes it bigger.
+kwHab.onElement('[role="navigation"][aria-label="Thread list"] a[aria-label="New message"]', function (button) {
+  for (var row = button.parentElement, depth = 0; row && depth < 8; row = row.parentElement, depth++) {
+    if (row.querySelector('h1')) {
+      row.setAttribute('data-kw-chat-list-header', '');
+      return;
+    }
+  }
+});
+
 kwHab.onElement(ROW, checkRow);
 setInterval(function () {
   if (location.pathname.indexOf('/messages') !== 0) return;

@@ -12,7 +12,7 @@
   border-radius: 8px !important;
   color: var(--primary-button-background) !important;
   font-weight: 600 !important;
-  line-height: 20px !important;
+  line-height: calc(1.25rem * var(--kw-unzoom, 1)) !important;
 }
 .kw-see-more:hover {
   background-color: var(--hover-overlay) !important;

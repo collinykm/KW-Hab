@@ -13,3 +13,10 @@
 [data-kw-composer-hidden] {
   display: none !important;
 }
+
+/* The composer's row (your picture, the "What's on your mind" box, Photo/video)
+ * lines its items up along the top, which only shows once the box grows
+ * taller than the picture and button (bigger text or buttons): centre them. */
+[role="region"][aria-label="Create a post"] > div {
+  align-items: center !important;
+}

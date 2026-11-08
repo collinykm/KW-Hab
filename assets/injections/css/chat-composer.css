@@ -53,7 +53,8 @@
 }
 
 /* Both buttons the same size, outlined, with the icon above the label and
- * both centred. */
+ * both centred. At least 76 x 60px, and bigger when a bigger text size needs
+ * it. */
 [data-kw-chat-composer] {
   display: flex !important;
   flex-direction: column !important;
@@ -61,8 +62,10 @@
   justify-content: center !important;
   gap: 3px !important;
   box-sizing: border-box !important;
-  width: 76px !important;
-  height: 60px !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 76px !important;
+  min-height: 60px !important;
   margin: 6px 3px !important;
   padding: 6px 4px !important;
   border: 1.5px solid var(--chat-composer-button-color, #0070f6) !important;
@@ -70,9 +73,9 @@
 }
 
 [data-kw-chat-composer]::after {
-  font-size: 12px;
+  font-size: calc(0.75rem * var(--kw-unzoom, 1));
   font-weight: 600;
-  line-height: 14px;
+  line-height: calc(0.875rem * var(--kw-unzoom, 1));
   text-align: center;
   white-space: pre;
   color: var(--chat-composer-button-color, #0070f6);

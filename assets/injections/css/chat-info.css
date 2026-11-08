@@ -47,15 +47,25 @@
   content: "Stop this person from messaging or calling you";
   display: block;
   padding: 0 8px 8px 44px;
-  font-size: 13px;
-  line-height: 16px;
+  font-size: calc(0.8125rem * var(--kw-unzoom, 1));
+  line-height: calc(1rem * var(--kw-unzoom, 1));
   color: var(--secondary-text, #65676b);
 }
 
 /* A chat's theme (Customize chat, now hidden) colours its scrollbar too, e.g.
- * purple. Keep it the usual grey. */
+ * purple. Keep it the usual grey, on the panel's own background: a
+ * transparent track lets the theme's gradient (drawn behind the messages)
+ * show through as a coloured stripe. */
 [role="main"],
 [role="main"] * {
   --chat-scrollbar-thumb-color: rgba(0, 0, 0, 0.2) !important;
-  --chat-scrollbar-track-color: transparent !important;
+  --chat-scrollbar-track-color: var(--surface-background, #fff) !important;
+}
+/* WebKit draws the scrollbar see-through, so the chat's gradient (drawn
+ * behind the messages) showed through it as a coloured stripe. Paint the
+ * scrollbar's strip (--kw-chat-gutter wide, measured by js/chat-info.js) in
+ * the panel's colour; the messages keep their see-through background. */
+[data-kw-chat-scroller] {
+  background: linear-gradient(var(--surface-background, #fff), var(--surface-background, #fff))
+    right top / var(--kw-chat-gutter, 0px) 100% no-repeat border-box !important;
 }
