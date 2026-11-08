@@ -1,7 +1,13 @@
-/* The "What's on your mind" composer. js/composer.js tags the Live video and
- * Feeling/activity shortcuts; only Photo/video stays. Both are still in the
- * post dialog's "Add to your post" row. */
+/* The "What's on your mind" composer: only the Photo/video shortcut stays.
+ * Live video and Feeling/activity are still in the post dialog's "Add to your
+ * post" row, so they are never hidden inside a dialog.
+ *
+ * This sheet loads before the page renders, so the buttons never flash. It
+ * covers the icon-only buttons (with an aria-label). js/composer.js handles
+ * the text-only variant and also hides each button's wrapper, so no gap is
+ * left. */
 
+[role="button"]:is([aria-label="Live video"], [aria-label="Feeling/activity"]):not([role="dialog"] *),
 [data-kw-composer-hidden] {
   display: none !important;
 }

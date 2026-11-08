@@ -4,9 +4,11 @@
 // are still in the "Add to your post" row of the post dialog, so nothing is
 // lost, the shortcuts just aren't on the first screen.
 //
-// Facebook has shipped these buttons both with an aria-label and as plain
-// text, so both are checked. Only buttons that share the composer with the
-// "What's on your mind" prompt are hidden, never those inside the post dialog.
+// css/composer.css hides the aria-labelled buttons before the page paints
+// (no flash). Facebook has also shipped them as plain text, which CSS can't
+// match, so this checks both and hides each button's wrapper too. Only
+// buttons that share the composer with the "What's on your mind" prompt are
+// hidden, never those inside the post dialog.
 
 var HIDDEN = 'data-kw-composer-hidden';
 var DROP = /^(Live video|Feeling\/activity)$/i;
@@ -46,14 +48,22 @@ function hide(button, composer) {
   slot.setAttribute(HIDDEN, '');
 }
 
-function check(button, retry) {
+function check(button) {
   if (!DROP.test(labelOf(button))) return;
   var composer = composerOf(button);
   if (composer) hide(button, composer);
-  // The prompt can render a moment after the shortcuts.
-  else if (retry) setTimeout(function () { check(button, false); }, 500);
+}
+
+// The prompt can render after the shortcuts, so when it appears, check the
+// shortcut buttons around it too.
+function checkAround(prompt) {
+  var el = prompt.parentElement;
+  for (var depth = 0; el && depth < MAX_DEPTH; depth++, el = el.parentElement) {
+    el.querySelectorAll('[role="button"]').forEach(check);
+  }
 }
 
 kwHab.onElement('[role="button"]', function (button) {
-  check(button, true);
+  if (PROMPT.test(labelOf(button))) checkAround(button);
+  else check(button);
 });

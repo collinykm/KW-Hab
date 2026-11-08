@@ -1,0 +1,5 @@
+/* Sponsored posts in feeds, tagged by js/ads.js. */
+
+[data-kw-ads-hidden] {
+  display: none !important;
+}
