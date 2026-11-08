@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../injections/injection_bundle.dart';
@@ -9,6 +10,7 @@ import 'facebook_web_view.dart';
 import 'login_state.dart';
 import 'native_shell.dart';
 import 'page_bridge.dart';
+import 'platform.dart';
 import 'url_routing.dart';
 
 /// The main window: the Facebook web view plus a loading bar and offline screen.
@@ -111,9 +113,24 @@ class _FacebookShellState extends State<FacebookShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    // Android's back gesture/button goes back a page in Facebook, like a
+    // browser; only on the first page does it leave the app. Other platforms
+    // are unchanged (canPop stays true).
+    return PopScope(
+      canPop: !isAndroid,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop || !isAndroid) return;
+        final c = _controller;
+        if (c != null && await c.canGoBack()) {
+          await c.goBack();
+        } else {
+          await SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
+      body: SafeArea(child:
+      Stack(
         children: [
           Positioned.fill(
             child: FacebookWebView(
@@ -155,6 +172,9 @@ class _FacebookShellState extends State<FacebookShell> {
             ),
         ],
       ),
+      )
+
+    ),
     );
   }
 }
