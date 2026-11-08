@@ -95,9 +95,34 @@ void main() {
     setUp(() {
       classifier = FakeClassifier();
       notifier = FakeNotifier();
-      monitor = MessageMonitor(classifier: classifier, notifier: notifier, cooldown: Duration.zero);
+      monitor = MessageMonitor(
+        classifier: classifier,
+        notifier: notifier,
+        cooldown: Duration.zero,
+      );
     });
     tearDown(() => monitor.dispose());
+
+    test('skips older messages the user scrolls back to', () async {
+      final history = [for (var i = 0; i < 40; i++) (i.isEven, 'm$i')];
+      await monitor.submit(snapshot(history.sublist(20)));
+      expect(classifier.seen, hasLength(1));
+      // Messenger only renders the rows on screen, so scrolling up sends
+      // ever older windows; each overlaps what was already seen.
+      for (var end = 35; end >= 10; end -= 5) {
+        await monitor.submit(snapshot(history.sublist(end - 10, end)));
+      }
+      expect(classifier.seen, hasLength(1));
+      // Back at the bottom, a new message is checked.
+      await monitor.submit(snapshot([...history.sublist(21), (false, 'new')]));
+      expect(classifier.seen, hasLength(2));
+    });
+
+    test('a repeated message after something new still counts as new', () async {
+      await monitor.submit(snapshot([(false, 'ok'), (true, 'ok')]));
+      await monitor.submit(snapshot([(false, 'ok'), (true, 'ok'), (false, 'send it'), (false, 'ok')]));
+      expect(classifier.seen, hasLength(2));
+    });
 
     test('sends only the last 20 messages', () async {
       await monitor.submit(snapshot([for (var i = 0; i < 30; i++) (i.isEven, 'm$i')]));
@@ -278,18 +303,30 @@ void main() {
     });
 
     test('throws when every model is rate limited', () async {
+      var requests = 0;
       final classifier = GeminiSafetyClassifier(
         apiKey: 'k',
         model: 'main',
         fallbackModels: const ['backup'],
-        client: MockClient((request) async =>
-            http.Response(rateLimited((jsonDecode(request.body) as Map)['model'] as String), 429)),
+        client: MockClient((request) async {
+          requests++;
+          return http.Response(rateLimited((jsonDecode(request.body) as Map)['model'] as String), 429);
+        }),
       );
       await expectLater(
         classifier.assess(snapshot([(false, 'hi')])),
         throwsA(isA<SafetyClassifierException>()
             .having((e) => e.message, 'message', contains('rate limited'))),
       );
+      expect(requests, 2);
+
+      // While every model waits out its limit, nothing is sent.
+      await expectLater(
+        classifier.assess(snapshot([(false, 'hi again')])),
+        throwsA(isA<SafetyClassifierException>()
+            .having((e) => e.message, 'message', contains('not sending'))),
+      );
+      expect(requests, 2);
     });
 
     test('does not fall back on errors every model would hit', () async {

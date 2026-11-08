@@ -23,15 +23,38 @@ class StaffAlert {
     return picked.isEmpty ? conversation.messages : picked;
   }
 
-  /// Plain-text summary, suitable for an SMS or email body.
-  String get summary {
+  /// Plain-text summary: the email body, and the console placeholder.
+  String get summary => _body();
+
+  /// [summary] kept within Twilio's 1600-character limit: each message is cut
+  /// to [maxMessageLength], and messages are dropped from the end if needed.
+  String get smsBody {
+    const limit = 1600;
+    var messages = flaggedMessages;
+    while (true) {
+      final body = _body(messages: messages, maxMessageLength: 200);
+      if (body.length <= limit) return body;
+      if (messages.isEmpty) return '${body.substring(0, limit - 1)}…';
+      messages = messages.sublist(0, messages.length - 1);
+    }
+  }
+
+  String get emailSubject => 'KW Hab safety alert: ${assessment.category.label} '
+      '(${assessment.severity.name} priority)';
+
+  String _body({List<MonitoredMessage>? messages, int? maxMessageLength}) {
     final buffer = StringBuffer()
-      ..writeln('KW Hab safety alert (${assessment.severity.name}, ${assessment.category.name})')
+      ..writeln('KW Hab safety alert: ${assessment.category.label} '
+          '(${assessment.severity.name} priority)')
       ..writeln('Conversation with: ${conversation.title}')
       ..writeln(assessment.reason);
-    for (final m in flaggedMessages) {
+    for (final m in messages ?? flaggedMessages) {
       final who = m.fromUser ? 'User' : (m.sender ?? 'Other person');
-      buffer.writeln('- $who: ${m.text}');
+      var text = m.text;
+      if (maxMessageLength != null && text.length > maxMessageLength) {
+        text = '${text.substring(0, maxMessageLength - 1)}…';
+      }
+      buffer.writeln('- $who: $text');
     }
     return buffer.toString().trimRight();
   }
@@ -42,17 +65,23 @@ typedef AlertRecipient = ({SupportContact contact, ContactMethod method, String 
 
 /// Who an alert goes to: every reachable support person, once each, by their
 /// preferred method (or whatever details they gave, if that one is blank).
-List<AlertRecipient> alertRecipients(Iterable<SupportContact> contacts) => [
+/// [available] limits it to the methods the app can send by; someone whose
+/// preferred method isn't available gets the other one if they gave it.
+List<AlertRecipient> alertRecipients(
+  Iterable<SupportContact> contacts, {
+  Iterable<ContactMethod> available = ContactMethod.values,
+}) =>
+    [
       for (final c in contacts)
-        if (c.contactMethod case final m?) (contact: c, method: m, address: c.addressFor(m)),
+        if (c.reachableBy(available) case final m?)
+          (contact: c, method: m, address: c.addressFor(m)),
     ];
 
 /// Delivers a [StaffAlert] to the user's support people.
 ///
-/// The real delivery (SMS or email, to the support people entered during
-/// onboarding; see [alertRecipients]) doesn't exist yet. Implement this
-/// interface for it and swap it in where the monitor is built
-/// (`lib/monitoring/monitoring_setup.dart`).
+/// `DeliveringStaffNotifier` (SMS/email) is the real one, chosen in
+/// `lib/monitoring/monitoring_setup.dart`; [ConsoleStaffNotifier] is used when
+/// no SMS or email keys are set.
 abstract class StaffNotifier {
   Future<void> notify(StaffAlert alert);
 }

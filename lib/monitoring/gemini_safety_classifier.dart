@@ -63,11 +63,16 @@ class GeminiSafetyClassifier implements SafetyClassifier {
   @override
   Future<SafetyAssessment> assess(ConversationSnapshot conversation) async {
     final now = _clock();
-    var candidates =
+    final candidates =
         models.where((m) => !(_limitedUntil[m]?.isAfter(now) ?? false)).toList();
-    // Every model is waiting out a limit: try them all anyway rather than
-    // give up, since a wait may have been a guess.
-    if (candidates.isEmpty) candidates = models;
+    // Every model is waiting out a limit. Don't send anything: each request
+    // would just be refused (and a daily limit lasts hours). Guessed waits are
+    // only a minute, so this clears up soon when the limit was brief.
+    if (candidates.isEmpty) {
+      final soonest = _limitedUntil.values.reduce((a, b) => a.isBefore(b) ? a : b);
+      throw SafetyClassifierException('every model is rate limited or overloaded '
+          'until ${soonest.toLocal()}, not sending');
+    }
 
     final failures = <String>[];
     for (final candidate in candidates) {
@@ -93,7 +98,12 @@ class GeminiSafetyClassifier implements SafetyClassifier {
         'every model is rate limited or overloaded:\n${failures.join('\n')}');
   }
 
+  /// Requests sent since the app started, for the console log.
+  int _requests = 0;
+
   Future<http.Response> _send(ConversationSnapshot conversation, String model) async {
+    _requests++;
+    debugPrint('[kw-hab:message-monitor] Gemini request #$_requests ($model)');
     try {
       return await _client
           .post(
