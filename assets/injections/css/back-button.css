@@ -1,0 +1,44 @@
+/* "Back" button from js/back-button.js: just below the top bar on the left,
+ * above Facebook's windows. */
+.kw-back {
+  position: fixed;
+  top: 66px;
+  left: 12px;
+  z-index: 2147483000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 18px 0 12px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--primary-button-background, #0866ff);
+  color: #fff;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.kw-back:hover {
+  filter: brightness(0.92);
+}
+
+.kw-back:focus-visible {
+  outline: 3px solid var(--accent, #0866ff);
+  outline-offset: 2px;
+}
+
+/* Nothing to go back to yet. */
+.kw-back[aria-disabled="true"] {
+  background: var(--secondary-button-background, #e4e6eb);
+  color: var(--secondary-text, #65676b);
+  cursor: default;
+  filter: none;
+}
+
+/* Page titles that would otherwise be under the button. */
+.kw-back-room {
+  margin-left: 104px !important;
+}

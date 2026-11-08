@@ -28,7 +28,6 @@ Future<void> main() async {
     createReadAloudBridge(settings),
     createSpeechToTextBridge(settings),
     PostSummaryBridge(cloudinary),
-    PhotoFixBridge(cloudinary),
   ];
   runApp(FacebookApp(injections: injections, settings: settings, bridges: bridges));
 }
