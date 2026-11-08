@@ -21,6 +21,17 @@ class WindowsMessengerWorker {
   static const _createdEvent = 'Target.targetCreated';
   static const _timeout = Duration(seconds: 3);
 
+  /// A resume sent before the worker has reached its startup pause is
+  /// acknowledged but does nothing, and nothing tells us when it gets there.
+  /// So each resume is repeated a few times; it's harmless on a running worker.
+  static const _followUps = [
+    Duration(seconds: 1),
+    Duration(seconds: 3),
+    Duration(seconds: 6),
+    Duration(seconds: 12),
+  ];
+  static final _followUpTimers = Expando<List<Timer>>();
+
   static bool get _isWindows => !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
 
   static bool _isMessengerWorker(Map target) {
@@ -56,8 +67,18 @@ class WindowsMessengerWorker {
     }
   }
 
-  static Future<void> resume(InAppWebViewController controller) async {
-    if (!_isWindows) return;
+  /// Resumes now, and again a few times over the next seconds.
+  static Future<void> resume(InAppWebViewController controller) {
+    if (!_isWindows) return Future.value();
+    _followUpTimers[controller]?.forEach((timer) => timer.cancel());
+    _followUpTimers[controller] = [
+      for (final delay in _followUps)
+        Timer(delay, () => unawaited(_resumeOnce(controller))),
+    ];
+    return _resumeOnce(controller);
+  }
+
+  static Future<void> _resumeOnce(InAppWebViewController controller) async {
     final pending = _running[controller];
     if (pending != null) {
       // A worker may have started after this run listed the targets.

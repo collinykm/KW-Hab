@@ -1,10 +1,18 @@
-// "Read aloud" buttons on feed posts and chat messages. The user starts
-// reading themselves; the button becomes "Stop reading" while audio plays.
-// Speech comes from ElevenLabs through the Dart side (lib/speech/), via the
-// `kwReadAloud` handler, so the API key never enters this page.
+// "Summarize post" buttons on feed posts and "Read aloud" buttons on chat
+// messages. The user starts reading themselves; the button becomes "Stop
+// reading" while audio plays. Speech comes from ElevenLabs through the Dart
+// side (lib/speech/), via the `kwReadAloud` handler, so the API key never
+// enters this page.
+//
+// Posts with a photo are summarized first: Cloudinary AI Vision looks at the
+// photo together with the post's words (lib/cloudinary/, `kwSummarizePost`),
+// so details that are only in the picture (a flyer's date and place, what is
+// going on) are read out too. The summary is also shown under the button.
 
+var SUMMARY_HANDLER = 'kwSummarizePost';
 var LABELS = {
   idle: 'Read aloud',
+  looking: 'Looking at the post…',
   loading: 'Getting audio…',
   playing: 'Stop reading',
 };
@@ -20,7 +28,9 @@ var current = null;
 
 function setState(button, state, message) {
   button.setAttribute('data-state', state);
-  button.querySelector('.kw-read-aloud__label').textContent = message || LABELS[state];
+  var idle = button.getAttribute('data-idle-label') || LABELS.idle;
+  button.querySelector('.kw-read-aloud__label').textContent =
+    message || (state === 'idle' ? idle : LABELS[state]);
   button.setAttribute('aria-pressed', state === 'playing' ? 'true' : 'false');
 }
 
@@ -46,7 +56,8 @@ function audioUrl(base64, mimeType) {
   return URL.createObjectURL(new Blob([bytes], { type: mimeType }));
 }
 
-function read(button, text) {
+// [getText] returns the text to read, or a promise of it.
+function read(button, getText) {
   var wasThisButton = current && current.button === button;
   stop();
   if (wasThisButton) return; // the button said "Stop reading"
@@ -60,7 +71,12 @@ function read(button, text) {
   current = request;
   setState(button, 'loading');
 
-  bridge.callHandler('kwReadAloud', text).then(function (result) {
+  Promise.resolve().then(getText).then(function (text) {
+    if (current !== request) return null;
+    setState(button, 'loading');
+    if (!text) return { ok: false, error: 'empty' };
+    return bridge.callHandler('kwReadAloud', text);
+  }).then(function (result) {
     if (current !== request) return; // stopped or replaced while loading
     if (!result || !result.ok) {
       current = null;
@@ -90,7 +106,7 @@ function makeButton(getText) {
     // Keep Facebook from treating this as a click on the post or message.
     event.preventDefault();
     event.stopPropagation();
-    read(button, getText());
+    read(button, getText);
   });
   return button;
 }
@@ -102,20 +118,112 @@ function clean(text) {
     .trim();
 }
 
-// Feed posts: the author's name, then the post text (read when clicked, so a
-// post expanded with "See more" is read in full).
-kwHab.onElement('[aria-posinset] [data-ad-rendering-role="story_message"]', function (message) {
-  var post = message.closest('[aria-posinset]');
-  if (!post || post.querySelector('.kw-read-aloud')) return;
-  var button = makeButton(function () {
-    var author = post.querySelector('[data-ad-rendering-role="profile_name"]');
-    // Only the name's first line: group posts add "· Join" / "· Follow" after it.
-    var name = author ? clean(author.innerText.split('\n')[0]).replace(/\s*·.*$/, '') : '';
-    var body = clean(message.innerText);
-    return name ? name + ' wrote: ' + body : body;
+// ---- Feed posts: "Summarize post" ------------------------------------------
+
+var POST = '[aria-posinset]';
+var PROFILE_NAME = '[data-ad-rendering-role="profile_name"]';
+var STORY_MESSAGE = '[data-ad-rendering-role="story_message"]';
+
+function postAuthor(post) {
+  var author = post.querySelector(PROFILE_NAME);
+  // Only the name's first line: group posts add "· Join" / "· Follow" after it.
+  return author ? clean(author.innerText.split('\n')[0]).replace(/\s*·.*$/, '') : '';
+}
+
+// The post's main photo: its largest Facebook image (not profile pictures,
+// emoji or reaction icons), or null.
+function postPhoto(post) {
+  var best = null;
+  var bestArea = 0;
+  post.querySelectorAll('img').forEach(function (img) {
+    var src = img.currentSrc || img.src || '';
+    if (!/^https:\/\/[^/]*fbcdn\.net\//.test(src)) return;
+    var area = img.clientWidth * img.clientHeight;
+    if (img.clientWidth < 150 || img.clientHeight < 100 || area <= bestArea) return;
+    best = src;
+    bestArea = area;
   });
+  return best;
+}
+
+// Shows [text] in a box under the post's button.
+function showSummary(button, text) {
+  var box = button.nextElementSibling;
+  if (!box || !box.classList.contains('kw-post-summary')) {
+    box = document.createElement('div');
+    box.className = 'kw-post-summary';
+    box.setAttribute('role', 'status');
+    button.parentNode.insertBefore(box, button.nextSibling);
+  }
+  box.textContent = text;
+}
+
+// Opens a long post's "See more", so all of its words are used. Resolves once
+// Facebook has had time to show them.
+function expandPost(post) {
+  var message = post.querySelector(STORY_MESSAGE);
+  var more = message && Array.prototype.find.call(
+    message.querySelectorAll('[role="button"]'),
+    function (el) { return /^See more$/i.test((el.textContent || '').trim()); }
+  );
+  if (!more) return Promise.resolve();
+  more.click();
+  return new Promise(function (resolve) { setTimeout(resolve, 500); });
+}
+
+// What to say for [post]: a summary of its words and photo together, or just
+// the words when there is no photo (or the photo can't be looked at).
+function postSpeech(post, button) {
+  return expandPost(post).then(function () { return describePost(post, button); });
+}
+
+function describePost(post, button) {
+  var name = postAuthor(post);
+  var message = post.querySelector(STORY_MESSAGE);
+  var body = message ? clean(message.innerText) : '';
+  var words = body ? (name ? name + ' wrote: ' + body : body) : '';
+  var photo = postPhoto(post);
+  if (!photo) return words;
+  setState(button, 'looking');
+  return window.flutter_inappwebview.callHandler(SUMMARY_HANDLER, name, body, photo)
+    .then(function (result) {
+      if (result && result.ok && result.summary) {
+        showSummary(button, result.summary);
+        return result.summary;
+      }
+      kwHab.log('read-aloud', 'no summary', result && result.error);
+      return words ? words + ' There is also a photo.' : (name || 'Someone') + ' posted a photo.';
+    });
+}
+
+// Adds the post's button to [parent], before [before] (null: at the end).
+function addPostButton(post, parent, before) {
+  if (!post || post.querySelector('.kw-read-aloud--post')) return;
+  var button = makeButton(function () { return postSpeech(post, button); });
   button.classList.add('kw-read-aloud--post');
-  message.parentNode.insertBefore(button, message.nextSibling);
+  button.setAttribute('data-idle-label', 'Summarize post');
+  setState(button, 'idle');
+  parent.insertBefore(button, before);
+}
+
+// Posts with words: the button goes right under them. The words are read when
+// clicked, so a post expanded with "See more" is read in full.
+kwHab.onElement(POST + ' ' + STORY_MESSAGE, function (message) {
+  addPostButton(message.closest(POST), message.parentNode, message.nextSibling);
+});
+
+// Posts that are only a photo: the button goes above the photo.
+kwHab.onElement(POST + ' a[href*="/photo"] img', function (img) {
+  var post = img.closest(POST);
+  if (!post || post.querySelector(STORY_MESSAGE) || post.querySelector('.kw-read-aloud--post')) return;
+  var header = post.querySelector(PROFILE_NAME);
+  if (!header) return;
+  // The photo's section: its highest ancestor that doesn't also hold the header.
+  var section = img;
+  while (section.parentElement && !section.parentElement.contains(header)) {
+    section = section.parentElement;
+  }
+  if (section.parentElement) addPostButton(post, section.parentElement, section);
 });
 
 // Chat messages: one button under each message. Facebook labels every message

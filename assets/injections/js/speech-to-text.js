@@ -5,14 +5,18 @@
 //
 // - Messenger's composer: a "Speak to type" button left of the emoji button
 //   ("Send a voice clip" stays, for sending a recording instead).
-// - Any other text box (posts, comments, search): the same button appears
-//   next to it while it has focus.
+// - Comment boxes: the same button, left of Send.
+// - Any other text box (posts, search): the same button appears next to it
+//   while it has focus.
 
 var HANDLER = 'kwSpeechToText';
 var MAX_RECORDING_MS = 60000;
 var TEXTBOX = '[contenteditable="true"][role="textbox"], textarea, ' +
   'input[type="text"], input[type="search"], input:not([type])';
 var EMOJI = '[role="button"][aria-label="Choose an emoji"]';
+// Facebook's Send button for a comment (one per open comment box).
+var COMMENT_SUBMIT = '#focused-state-composer-submit';
+var EDITABLE = '[contenteditable="true"][role="textbox"]';
 
 var LABELS = {
   idle: 'Speak to type',
@@ -225,13 +229,30 @@ function themeColor(from) {
   return null;
 }
 
+// ---- Comment boxes: a labelled button left of Send ----------------------------
+
+kwHab.onElement(COMMENT_SUBMIT, function (submit) {
+  var form = submit.closest('form');
+  if (!form || !submit.parentElement) return;
+  var previous = submit.previousElementSibling;
+  if (previous && previous.classList.contains('kw-speak--comment')) return;
+  var button = makeButton(function () { return form.querySelector(EDITABLE); });
+  button.classList.add('kw-speak--comment');
+  submit.parentElement.classList.add('kw-speak-comment-row');
+  submit.parentElement.insertBefore(button, submit);
+  // The box was focused before this appeared: it doesn't need the floating one.
+  if (floatingTarget && form.contains(floatingTarget)) hideFloating();
+});
+
 // ---- Every other text box: a "Speak" button while it has focus ---------------
 
 var floating = null; // the shared button, created on first use
 var floatingTarget = null;
 
-// Messenger composers already have their own button.
+// Messenger composers and open comment boxes already have their own button.
 function hasComposerButton(box) {
+  var form = box.closest('form');
+  if (form && form.querySelector('.kw-speak--comment')) return true;
   var buttons = document.querySelectorAll('.kw-speak--composer');
   for (var i = 0; i < buttons.length; i++) {
     if (composerBox(buttons[i]) === box) return true;

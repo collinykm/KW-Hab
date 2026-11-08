@@ -73,6 +73,22 @@
   color: var(--kw-speak-icon, #0866ff);
 }
 
+/* In a comment box, left of Send. Send's wrapper is a column by default,
+   which would push Send out of the box. */
+.kw-speak-comment-row {
+  flex-direction: row !important;
+  align-items: center !important;
+}
+
+.kw-speak--comment {
+  align-self: center;
+  height: 36px;
+  margin-right: 8px;
+  padding: 0 12px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
 /* Next to other text boxes while they have focus. */
 .kw-speak--floating {
   position: fixed;
