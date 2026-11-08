@@ -1,0 +1,46 @@
+/* The "Loading…" screen over a page while it is being built, so nobody sees
+ * Facebook's parts appear and the other areas remove them. js/page-cover.js
+ * sets data-kw-page-ready when the page has settled. The kw-cover-end animation
+ * clears the cover even if that script never runs. */
+html:not([data-kw-page-ready])::before {
+  content: "Loading…";
+  position: fixed;
+  inset: var(--kw-cover-top, 0px) 0 0 0;
+  z-index: 2147482000; /* under the Back button */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 110px;
+  background: #fff;
+  color: #65676b;
+  font: 700 calc(1.5rem * var(--kw-text-scale, 1)) system-ui, -apple-system, "Segoe UI", sans-serif;
+  animation: kw-cover-end 0s linear 8s forwards;
+}
+
+html:not([data-kw-page-ready])::after {
+  content: "";
+  position: fixed;
+  top: calc(50% + var(--kw-cover-top, 0px) / 2 - 24px);
+  left: calc(50% - 24px);
+  z-index: 2147482001;
+  box-sizing: border-box;
+  width: 48px;
+  height: 48px;
+  border: 5px solid #e4e6eb;
+  border-top-color: #0866ff;
+  border-radius: 50%;
+  animation: kw-cover-spin 1s linear infinite, kw-cover-end 0s linear 8s forwards;
+}
+
+html.__fb-dark-mode:not([data-kw-page-ready])::before {
+  background: #18191a;
+  color: #e4e6eb;
+}
+
+@keyframes kw-cover-end {
+  to { visibility: hidden; }
+}
+
+@keyframes kw-cover-spin {
+  to { transform: rotate(360deg); }
+}

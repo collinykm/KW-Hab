@@ -103,6 +103,20 @@
   });
   window.addEventListener('popstate', fireNavigate);
 
+  // Facebook sends its page in pieces and can take seconds to finish, so area
+  // scripts start when <body> appears, not when the whole document has arrived.
+  var bodyCallbacks = [];
+  function whenBody(cb) {
+    if (document.body) { cb(); return; }
+    bodyCallbacks.push(cb);
+    if (bodyCallbacks.length > 1) return;
+    new MutationObserver(function (_, observer) {
+      if (!document.body) return;
+      observer.disconnect();
+      bodyCallbacks.splice(0).forEach(function (run) { run(); });
+    }).observe(document, { childList: true, subtree: true });
+  }
+
   var elementWatchers = [];
   var observer = null;
   function scan(watcher, root) {
@@ -164,15 +178,12 @@
       try { cb(copySettings()); } catch (e) { console.error('[kwHab] onSettings', e); }
     },
     _applySettings: applySettings,
+    _whenBody: whenBody,
     log: function (area) {
       var args = Array.prototype.slice.call(arguments, 1);
       console.log.apply(console, ['[kwHab:' + area + ']'].concat(args));
     },
   };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', fireNavigate);
-  } else {
-    fireNavigate();
-  }
+  whenBody(fireNavigate);
 })();

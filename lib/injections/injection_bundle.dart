@@ -86,16 +86,16 @@ class InjectionBundle {
       '${runtime.replaceFirst('__KW_HAB_HTML__', jsonEncode(html))}\n'
       '//# sourceURL=kw-hab/runtime.js\n';
 
-  /// Wraps one area script so a throw can't affect other areas, and names it
-  /// for the Web Inspector.
+  /// Wraps one area script so it starts once `<body>` exists, a throw can't
+  /// affect other areas, and the Web Inspector can name it.
   static String wrapAreaScript(String area, String source) => '''
-(function () {
+window.kwHab._whenBody(function () {
   try {
 $source
   } catch (e) {
     console.error('[kwHab:$area]', e);
   }
-})();
+});
 //# sourceURL=kw-hab/js/$area.js
 ''';
 
@@ -114,7 +114,7 @@ $source
           UserScript(
             groupName: 'kw-hab',
             source: wrapAreaScript(entry.key, entry.value),
-            injectionTime: UserScriptInjectionTime.AT_DOCUMENT_END,
+            injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
           ),
       ]);
 }
