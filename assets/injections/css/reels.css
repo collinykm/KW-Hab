@@ -2,7 +2,7 @@
  * - Top of the video: no mute, search or fullscreen buttons. Sound is always
  *   on (js/reels.js unmutes).
  * - Action column: Like, Comment, Share and a Save button (built by
- *   js/reels.js), each with a word under its icon. The "…" menu button is
+ *   js/reels.js), each with its count beside the icon and a word under both. The "…" menu button is
  *   hidden; Save drives that menu behind the scenes.
  * - Creator: only the picture and name. The globe (audience), Follow button
  *   and the "♫ … · Original audio" line are hidden.
@@ -27,18 +27,53 @@
 
 /* ---- Action column ------------------------------------------------------ */
 
-/* Facebook's buttons are 48px wide, too narrow for "Comment". The column
- * (tagged by js/reels.js) sits in a 72px track, so widen to that. */
+/* Facebook's buttons are 48px wide, too narrow for "Comment" with a count
+ * beside the icon. The column (tagged by js/reels.js) is widened so each
+ * button, and its hover shade, covers the icon, count and word. */
 .kw-reels-actions,
 .kw-reels-actions > *,
 .kw-reels-actions [role="button"]:not([aria-label="React"]) {
-  width: 72px !important;
+  width: 112px !important;
 }
-/* The icon/label/count stack inside each button only spans its widest line
- * and sits at the left; centre it in the wider button. */
+/* The icon/count/label stack inside each button only spans its own width.
+ * Start every stack at the same left edge, so with the stack's fixed first
+ * column (below) the four icons line up vertically. */
 .kw-reels-actions [role="button"]:not([aria-label="React"]) > div:first-child {
-  margin-left: auto !important;
+  margin-left: 4px !important;
   margin-right: auto !important;
+}
+
+/* Icon and count side by side, the word under the icon, as in the feed's
+ * Like / Comment row. js/reels.js tags the parts. */
+.kw-reels-stack {
+  display: grid !important;
+  /* A fixed first column ("Comment" is the widest word) keeps the icons of
+   * all four buttons in one vertical line. */
+  grid-template-columns: 64px auto;
+  grid-template-areas: "icon count" "label .";
+  align-items: center;
+  justify-content: start;
+  column-gap: 2px;
+}
+.kw-reels-stack:not(:has(> .kw-reels-count)) {
+  grid-template-columns: 64px;
+  grid-template-areas: "icon" "label";
+}
+.kw-reels-stack > .kw-reels-icon {
+  grid-area: icon;
+  justify-self: center;
+  margin: 0 !important;
+}
+.kw-reels-stack > .kw-reels-count {
+  grid-area: count;
+  margin: 0 !important;
+  padding: 0 !important;
+  white-space: nowrap;
+}
+/* The word sits under the icon only, centred on it. */
+.kw-reels-stack > .kw-reels-label {
+  grid-area: label;
+  justify-self: center;
 }
 
 /* Same look as the counts under the icons; js/reels.js copies the count's
