@@ -1,8 +1,8 @@
 /* The "Create post" dialog (opened from "What's on your mind"). Removed:
  * AI label, background options, Check in, Life update, GIF, Live video,
  * Raise money, and the audience list's list-building choices. Kept, with
- * text labels: Photo/video, Tag people, Feeling/activity and Emoji. The whole
- * dialog is drawn larger.
+ * text labels: Photo/video, Tag people, Feeling/activity and Emoji. The
+ * dialog is as wide as a feed post.
  *
  * The composer is the dialog holding a "Close composer dialog" button. Its
  * sub-screens (Tag people, Post audience, Add to your post, ...) open inside
@@ -25,10 +25,20 @@
   display: none !important;
 }
 
-/* Larger text and buttons. Only the outer dialog (the one directly holding
- * the <form>), so the inner role="dialog" headers aren't scaled twice. */
+/* Wider: the width of a feed post (680px) instead of Facebook's 500px. Text
+ * and icons keep Facebook's sizes; the app's accessibility settings handle
+ * those. Only the outer dialog (the one directly holding the <form>) is sized;
+ * the form and the fixed-width layers inside it (marked by
+ * js/post-dialog.js) fill it. */
 [role="dialog"]:has(> form [aria-label="Close composer dialog"]) {
-  zoom: 1.25;
+  width: min(680px, calc(100vw - 32px)) !important;
+  max-width: none !important;
+}
+[role="dialog"]:has(> form [aria-label="Close composer dialog"]) > form,
+[role="dialog"]:has(> form [aria-label="Close composer dialog"]) > form > div,
+[data-kw-post-dialog-wide] {
+  width: 100% !important;
+  max-width: none !important;
 }
 
 /* Post audience: keep Public, Friends and Only me. "Don't show to",

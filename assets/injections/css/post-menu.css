@@ -1,0 +1,111 @@
+/* The ⋯ menu on posts ("Actions for this post by <name>"). On other people's
+ * posts it is hidden; its one everyday item, Save post, becomes a button in
+ * the Like / Comment / Send row (js/post-menu.js). Hidden with it: Interested
+ * / Not interested, Report post, Hide, Snooze, Unfollow, Block and the rest.
+ * Block, Unfollow and Hide stay reachable from the person's profile; Report
+ * post does not.
+ *
+ * Like only likes: hovering it no longer opens the Reactions popup (marked
+ * [data-kw-post-menu-hidden] by js/post-menu.js), and the "React to" button
+ * beside it, which only opens that popup, is hidden.
+ *
+ * The user's own posts keep the menu (Edit post, Delete post, Edit audience):
+ * js/post-menu.js marks those with [data-kw-own-post]. */
+
+[role="button"][aria-label^="Actions for this post"]:not([data-kw-own-post]),
+.kw-post-actions [role="button"][aria-label^="React to "],
+[data-kw-post-menu-hidden] {
+  display: none !important;
+}
+
+/* While the Save button works the hidden menu, the menu is opened unseen. */
+html[data-kw-post-menu-busy] :is(
+  [role="menu"],
+  :has(> [role="menu"]),
+  :has(> * > [role="menu"])
+) {
+  opacity: 0 !important;
+}
+
+/* ---- Like / Comment / Send / Save row ---------------------------------
+ * Each button gets a text label under its icon, and the row is made taller to
+ * fit. js/post-menu.js marks the row .kw-post-actions and its buttons
+ * [data-kw-action] (the "React to" reaction picker next to Like is left as an
+ * icon). The Save button (.kw-save) is a copy of the Send / Share slot with a bookmark
+ * icon. */
+
+.kw-post-actions-wrap {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.kw-post-actions {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  min-height: 0 !important;
+  align-items: stretch !important;
+}
+
+.kw-post-actions :is([data-kw-action], .kw-save) {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: auto !important;
+  min-height: 60px;
+  padding: 10px 12px !important;
+}
+
+.kw-post-actions :is([data-kw-action], .kw-save)::after {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+  color: var(--secondary-text, #65676b);
+}
+
+.kw-post-actions [data-kw-action="like"]::after { content: "Like"; }
+.kw-post-actions [data-kw-action="comment"]::after { content: "Comment"; }
+.kw-post-actions [data-kw-action="send"]::after { content: "Send"; }
+.kw-post-actions [data-kw-action="share"]::after { content: "Share"; }
+.kw-post-actions .kw-save::after { content: "Save"; }
+.kw-post-actions .kw-save[data-kw-saved]::after {
+  content: "Saved";
+  color: var(--primary-button-background, #0866ff);
+}
+
+/* Facebook draws its buttons' hover shade from script, which the copy doesn't
+ * get, so the Save button's is drawn here: like theirs, a square block the
+ * full height of the row. */
+.kw-post-actions > [data-kw-save-slot] {
+  display: flex !important;
+  align-self: stretch;
+}
+.kw-post-actions > [data-kw-save-slot] .kw-save {
+  flex: 1;
+  border-radius: 0 !important;
+}
+.kw-post-actions .kw-save:hover {
+  background-color: var(--hover-overlay, rgba(0, 0, 0, 0.05)) !important;
+}
+.kw-post-actions .kw-save:active {
+  background-color: var(--press-overlay, rgba(0, 0, 0, 0.1)) !important;
+}
+
+.kw-save-icon {
+  display: block;
+  width: 20px;
+  height: 20px;
+  color: var(--secondary-icon, #65676b);
+}
+
+.kw-save[data-kw-saved] .kw-save-icon {
+  color: var(--primary-button-background, #0866ff);
+}
+
+.kw-save[data-kw-saved] .kw-save-icon path {
+  fill: currentColor;
+}
