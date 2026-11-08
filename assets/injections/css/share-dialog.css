@@ -1,0 +1,7 @@
+/* The Share dialog keeps "Send in Messenger" and "Share to" > Copy link.
+ * js/share-dialog.js tags the rest: the top half (audience, "Say something
+ * about this…", Share now), "Report Bug" and the other "Share to" options. */
+
+[data-kw-hidden="share-dialog"] {
+  display: none !important;
+}

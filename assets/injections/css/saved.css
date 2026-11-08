@@ -1,0 +1,17 @@
+/* The Saved page (/saved/, opened from the top bar's Saved tab). js/saved.js
+ * tags the gear beside the "Saved" heading (reminder settings) and each item's
+ * "⋯" button, which it replaces with an "Unsave" button. */
+
+[data-kw-hidden="saved"] {
+  display: none !important;
+}
+
+/* While the Unsave button works the hidden "⋯" menu, the menu is opened
+ * unseen. */
+html[data-kw-saved-busy] :is(
+  [role="menu"],
+  :has(> [role="menu"]),
+  :has(> * > [role="menu"])
+) {
+  opacity: 0 !important;
+}

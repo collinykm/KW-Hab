@@ -1,6 +1,6 @@
 /* Top bar (div[role="banner"]).
  * Left: Facebook logo + search (unchanged).
- * Middle: Home, Friends, Reels, and a Messages tab added by js/top-bar.js.
+ * Middle: Home, Friends, Reels, and Messages and Saved tabs added by js/top-bar.js.
  * Right: only the profile button, whose menu js/top-bar.js trims down.
  * Every middle tab and the profile button get a text label under the icon. */
 
@@ -18,29 +18,29 @@ div[role="navigation"][aria-label="Account Controls and Settings"] > :has([aria-
   display: none !important;
 }
 
-/* Messages tab (a clone of the Reels tab). Facebook drives the active state of
+/* Messages and Saved tabs (clones of the Reels tab). Facebook drives the active state of
  * its own tabs from React, so ours is driven by data-kw-active instead. */
-.kw-top-bar-messages .kw-top-bar-indicator {
+.kw-top-bar-added .kw-top-bar-indicator {
   transform: scaleY(0) !important;
 }
-.kw-top-bar-messages[data-kw-active] .kw-top-bar-indicator {
+.kw-top-bar-added[data-kw-active] .kw-top-bar-indicator {
   transform: none !important;
 }
-.kw-top-bar-messages svg {
+.kw-top-bar-added svg {
   --x-color: var(--secondary-icon) !important;
 }
-.kw-top-bar-messages[data-kw-active] svg {
+.kw-top-bar-added[data-kw-active] svg {
   --x-color: var(--primary-button-background) !important;
 }
 /* Facebook adds its hover highlight from JS, which our clones don't get. */
-.kw-top-bar-messages a:hover > div[role="none"] {
+.kw-top-bar-added a:hover > div[role="none"] {
   opacity: 1 !important;
   top: 4px !important;
   bottom: 4px !important;
   border-radius: 8px !important;
   background-color: var(--hover-overlay) !important;
 }
-.kw-top-bar-messages[data-kw-active] a:hover > div[role="none"] {
+.kw-top-bar-added[data-kw-active] a:hover > div[role="none"] {
   opacity: 0 !important;
 }
 

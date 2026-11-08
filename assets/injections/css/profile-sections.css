@@ -1,5 +1,11 @@
-/* Extra sections on profile About / Photos / Reels / Groups pages; tagged by
-   js/profile-sections.js. */
+/* Cards Facebook stacks under a profile tab's page that belong to other tabs,
+   and the filters a tab doesn't keep; tagged by js/profile-sections.js. */
 [data-kw-hidden="profile-section"] {
   display: none !important;
+}
+
+/* The intro column on All scrolls with the page instead of staying pinned. */
+[data-kw-profile-unstick] {
+  position: static !important;
+  top: auto !important;
 }

@@ -1,0 +1,18 @@
+/* Block and Report buttons on other people's profiles, beside Message
+   (js/profile-actions.js). They are copies of the Message button with their
+   own icon. */
+
+.kw-profile-action-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+/* While a button works the hidden "•••" menu, the menu is opened unseen. */
+html[data-kw-profile-menu-busy] :is(
+  [role="menu"],
+  :has(> [role="menu"]),
+  :has(> * > [role="menu"])
+) {
+  opacity: 0 !important;
+}

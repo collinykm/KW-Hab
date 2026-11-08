@@ -1,7 +1,16 @@
-// Every profile (the user's own included): open on the About tab; show only
-// the About and Photos tabs (plus Reels and Groups on the user's own profile);
-// hide the "See recommendations" chevron, its "People You May Know" panel and
-// the "•••" button.
+// The tab bar on profiles, and the buttons around it.
+//
+// Other people's profiles keep All (their intro and posts), About, Friends,
+// Photos and Reels. Everything else, including the More menu (Check-ins,
+// Music, Sports, Movies, Likes, Events, Reviews given, …), is hidden.
+//
+// The user's own profile opens on About and keeps About, Photos and Reels,
+// plus a Groups tab added here.
+//
+// On every profile the "See recommendations" chevron is hidden, along with
+// the "People You May Know" panel it opens, and so is the "•••" button (on
+// other people's profiles js/profile-actions.js replaces it with labelled
+// Block and Report buttons).
 // css/profile-tabs.css hides whatever gets tagged and styles the added tab.
 
 // The tab a profile link points to: "all" (the bare profile), or its section
@@ -15,18 +24,23 @@ function profileSection(href) {
   return parts[parts.length - 1];
 }
 
-// Which Facebook tab this is. Facebook drops some tabs' href after it
+// Which Facebook tab this is. Facebook drops the tabs' href after it
 // hydrates, so fall back to the label.
-var SECTION_BY_LABEL = { About: 'about', Photos: 'photos', Reels: 'reels_tab' };
+var SECTION_BY_LABEL = { All: 'all', About: 'about', Friends: 'friends', Photos: 'photos', Reels: 'reels_tab' };
 function tabSection(tab) {
   var href = tab.getAttribute('href');
   return href ? profileSection(href) : SECTION_BY_LABEL[tab.textContent.trim()] || null;
 }
 
-var KEPT_SECTIONS = { about: true, photos: true };
+var KEPT_SECTIONS = {
+  own: { about: true, photos: true, reels_tab: true },
+  other: { all: true, about: true, friends: true, photos: true, reels_tab: true },
+};
+
+var HIDDEN = 'data-kw-hidden';
 
 function hide(el) {
-  el.setAttribute('data-kw-hidden', 'profile-tab');
+  el.setAttribute(HIDDEN, 'profile-tab');
 }
 
 // Only the user's own profile has an "Edit profile" button.
@@ -52,28 +66,51 @@ function relabel(tab, from, label) {
   }
 }
 
-// The current profile's tab bar and Facebook's own tabs in it.
-var profileTabs = null;
+// Sort the tabs into kept and hidden. "Edit profile" can render after the tab
+// bar, so this runs again then, and starts from a clean slate each time.
+function setUpTabs(tablist) {
+  if (!tablist || !tablist.isConnected) return;
+  var own = isOwnProfile();
+  var kept = own ? KEPT_SECTIONS.own : KEPT_SECTIONS.other;
+  var found = { about: null, photos: null, reels: null };
 
-// Own profile only: show Facebook's real Reels tab (it switches instantly),
-// and add a Groups tab. Facebook only has Groups inside its "More" menu, which
-// won't open for scripted clicks, so this Groups tab is a plain link and does
-// a full page load.
-function addOwnProfileTabs() {
-  var t = profileTabs;
-  if (!t || !t.tablist.isConnected || !isOwnProfile()) return;
-  if (t.tablist.querySelector('[data-kw-tab]')) return;
+  var tabs = tablist.querySelectorAll('[role="tab"]:not([data-kw-tab])');
+  for (var i = 0; i < tabs.length; i++) {
+    var tab = tabs[i];
+    if (tab.getAttribute('aria-label') === 'More profile sections') {
+      hide(tab);
+      continue;
+    }
+    var section = tabSection(tab);
+    if (section === 'about') found.about = tab;
+    if (section === 'photos') found.photos = tab;
+    if (section === 'reels_tab') found.reels = tab;
+    if (kept[section]) tab.removeAttribute(HIDDEN);
+    else hide(tab);
+  }
 
-  if (t.reels) t.reels.removeAttribute('data-kw-hidden');
+  if (!own || !found.about || !found.about.href || !found.photos) return;
+  addGroupsTab(tablist, found);
 
+  // Own profile: land on About instead of the All (posts) view. replace()
+  // keeps the All view out of history, so Back doesn't bounce the user
+  // straight here again.
+  if (profileSection(location.href) === 'all') location.replace(found.about.href);
+}
+
+// Own profile only: a Groups tab. Facebook only has Groups inside its "More"
+// menu, which won't open for scripted clicks, so this Groups tab is a plain
+// link and does a full page load.
+function addGroupsTab(tablist, found) {
+  if (tablist.querySelector('[data-kw-tab]')) return;
   // Copy a tab that isn't selected, so the copy doesn't inherit its highlight.
-  var template = t.photos.getAttribute('aria-selected') === 'true' ? t.about : t.photos;
+  var template = found.photos.getAttribute('aria-selected') === 'true' ? found.about : found.photos;
   var groups = template.cloneNode(true);
   groups.setAttribute('data-kw-tab', 'groups');
-  groups.setAttribute('href', sectionUrl(t.about.href, 'groups'));
-  groups.removeAttribute('data-kw-hidden');
-  relabel(groups, template === t.about ? 'About' : 'Photos', 'Groups');
-  var after = t.reels || t.photos;
+  groups.setAttribute('href', sectionUrl(found.about.href, 'groups'));
+  groups.removeAttribute(HIDDEN);
+  relabel(groups, template === found.about ? 'About' : 'Photos', 'Groups');
+  var after = found.reels || found.photos;
   after.parentNode.insertBefore(groups, after.nextSibling);
   markActiveTab();
 }
@@ -89,36 +126,42 @@ function markActiveTab() {
   else groups.removeAttribute('data-kw-active');
 }
 
-kwHab.onElement('[role="tab"][aria-label="More profile sections"]', function (more) {
-  var tablist = more.closest('[role="tablist"]');
-  if (!tablist) return;
-  hide(more);
-
-  var found = { tablist: tablist, about: null, photos: null, reels: null };
-  var tabs = tablist.querySelectorAll('[role="tab"]:not([data-kw-tab])');
+// The profile's tab bar: the tab list in main with an About tab. (Not every
+// profile has a More tab; tab lists inside a page, like About's subsections,
+// have no About tab.)
+function isProfileTabBar(tablist) {
+  var tabs = tablist.querySelectorAll('[role="tab"]');
   for (var i = 0; i < tabs.length; i++) {
-    var section = tabSection(tabs[i]);
-    if (section === 'about') found.about = tabs[i];
-    if (section === 'photos') found.photos = tabs[i];
-    if (section === 'reels_tab') found.reels = tabs[i];
-    if (!KEPT_SECTIONS[section]) hide(tabs[i]);
+    if (tabSection(tabs[i]) === 'about') return true;
   }
-  if (!found.about || !found.about.href || !found.photos) return;
-  profileTabs = found;
-  addOwnProfileTabs();
+  return false;
+}
 
-  // Land on About instead of the All (posts) view. replace() keeps the All
-  // view out of history, so Back doesn't bounce the user straight here again.
-  if (profileSection(location.href) === 'all') {
-    location.replace(found.about.href);
+function currentTablist() {
+  var lists = document.querySelectorAll('[role="main"] [role="tablist"]');
+  for (var i = 0; i < lists.length; i++) {
+    if (isProfileTabBar(lists[i])) return lists[i];
   }
-});
+  return null;
+}
 
-// "Edit profile" can render after the tab bar; add the own-profile tabs then.
-kwHab.onElement('[role="main"] [aria-label="Edit profile"]', addOwnProfileTabs);
+// Tabs render one by one; sort them once the bar has settled.
+var tabsPending = null;
+function setUpTabsSoon() {
+  if (tabsPending) return;
+  tabsPending = setTimeout(function () {
+    tabsPending = null;
+    setUpTabs(currentTablist());
+  }, 50);
+}
+
+kwHab.onElement('[role="main"] [role="tablist"] [role="tab"]', setUpTabsSoon);
+kwHab.onElement('[role="main"] [aria-label="Edit profile"]', setUpTabsSoon);
 kwHab.onNavigate(markActiveTab);
 
-// The chevron and "•••" buttons next to the profile actions and the tabs.
+// The chevron next to the profile's buttons, and the "•••" (on other
+// people's profiles js/profile-actions.js puts its Block and Report items
+// on labelled buttons).
 kwHab.onElement(
   '[role="main"] [aria-label="See recommendations"], ' +
     '[role="main"] [aria-label="Profile settings see more options"]',
