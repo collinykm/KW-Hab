@@ -44,7 +44,7 @@ kwHab.onElement(PLAYER + ' [role="button"]:is([aria-label="Unmute"], [aria-label
 
 // ---- Action column ------------------------------------------------------------
 
-// Put a word under a column button's icon, above its count.
+// Put a word under a column button's icon and count.
 function addLabel(button, text) {
   var label = button.querySelector('.kw-reels-label');
   if (!label) {
@@ -60,10 +60,26 @@ function addLabel(button, text) {
     label.className = 'kw-reels-label';
     label.setAttribute('aria-hidden', 'true'); // the button is already labelled
     iconBox.after(label);
+    // css/reels.css lays the stack out as icon and count side by side, with
+    // the label underneath (as in the feed).
+    iconBox.classList.add('kw-reels-icon');
+    if (iconBox.parentElement !== button) iconBox.parentElement.classList.add('kw-reels-stack');
     matchCountColour(button, label);
   }
   label.textContent = text;
   return label;
+}
+
+// The count's box: the child of the stack (the label's parent) that holds it.
+// The count can render after the label is added, so this runs on each change.
+function markCountBox(label, count) {
+  var stack = label.parentElement;
+  if (!count || !stack) return;
+  var box = count;
+  while (box.parentElement && box.parentElement !== stack) box = box.parentElement;
+  if (box.parentElement === stack && !box.classList.contains('kw-reels-count')) {
+    box.classList.add('kw-reels-count');
+  }
 }
 
 // Facebook turns the icon and count blue (by class) while a button is active,
@@ -71,6 +87,7 @@ function addLabel(button, text) {
 function matchCountColour(button, label) {
   function sync() {
     var count = button.querySelector('span[dir="auto"]');
+    markCountBox(label, count);
     var colour = count ? getComputedStyle(count).color : '';
     if (label.style.color !== colour) label.style.color = colour;
   }
@@ -146,6 +163,23 @@ function buildSaveButton(shareBox, more) {
   });
   return box;
 }
+
+// Hovering Like opens a Reactions popup (Love, Care, Haha, …) in a layer at
+// the top of the page, so the popup doesn't say what opened it. Remember what
+// the pointer or focus was last on, and hide popups opened from the column:
+// Like then only likes and unlikes. (js/comments.js does the same for
+// comments.)
+var lastTarget = null;
+function remember(e) { lastTarget = e.target; }
+document.addEventListener('pointerover', remember, true);
+document.addEventListener('focusin', remember, true);
+
+kwHab.onElement('div[role="dialog"][aria-label="Reactions"]', function (popup) {
+  if (lastTarget && lastTarget.closest && lastTarget.closest('.kw-reels-actions')) {
+    popup.setAttribute(HIDDEN, '');
+    kwHab.log('reels', 'hid the Reactions popup');
+  }
+});
 
 // The column is Like, Comment, Share and "…", each in its own box. Start from
 // "…" and climb to the box whose parent also holds Like and Share.

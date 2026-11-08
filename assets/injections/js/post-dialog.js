@@ -82,3 +82,40 @@ kwHab.onElement('[role="radiogroup"][aria-label="Select audience"] label', funct
   if (input && (input.checked || input.getAttribute('aria-checked') === 'true')) return;
   hide(option, 'Close Friends (audience)');
 });
+
+// --- Width ------------------------------------------------------------------
+// css/post-dialog.css widens the dialog to a feed post's width, but layers
+// inside it keep Facebook's fixed 500px. Find those (about 500px wide in a
+// clearly wider parent) and mark them to fill their parent. Sub-screens (Tag
+// people, Post audience, …) mount later inside the same dialog, so this
+// re-checks while the dialog is open.
+
+var WIDE = 'data-kw-post-dialog-wide';
+
+function widen(dialog) {
+  for (var pass = 0; pass < 4; pass++) {
+    var changed = false;
+    var divs = dialog.querySelectorAll('div:not([' + WIDE + '])');
+    for (var i = 0; i < divs.length; i++) {
+      var el = divs[i];
+      var w = el.offsetWidth;
+      if (w < 480 || w > 520 || !el.parentElement) continue;
+      if (el.parentElement.clientWidth - w > 40) {
+        el.setAttribute(WIDE, '');
+        changed = true;
+      }
+    }
+    if (!changed) return;
+  }
+}
+
+kwHab.onElement('[aria-label="Close composer dialog"]', function (close) {
+  var dialog = close.closest('[role="dialog"]:has(> form)');
+  if (!dialog || dialog.__kwWidening) return;
+  dialog.__kwWidening = true;
+  widen(dialog);
+  var timer = setInterval(function () {
+    if (!dialog.isConnected) { clearInterval(timer); return; }
+    widen(dialog);
+  }, 250);
+});
