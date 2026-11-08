@@ -1,0 +1,4 @@
+/* Hide the left-hand column on the home feed (profile, Friends, Groups, shortcuts). */
+div[role="navigation"][aria-label="Shortcuts"] {
+  display: none !important;
+}

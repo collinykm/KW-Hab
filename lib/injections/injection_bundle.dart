@@ -63,8 +63,21 @@ class InjectionBundle {
       (document.head || document.documentElement).appendChild(style);
     });
   }
-  apply();
-  new MutationObserver(apply).observe(document.documentElement, { childList: true });
+  function start() {
+    apply();
+    new MutationObserver(apply).observe(document.documentElement, { childList: true });
+  }
+  // WebView2 (Chromium) runs document-start scripts before <html> exists;
+  // WebKit already has it. Wait for it rather than throwing.
+  if (document.documentElement) {
+    start();
+  } else {
+    new MutationObserver(function (_, observer) {
+      if (!document.documentElement) return;
+      observer.disconnect();
+      start();
+    }).observe(document, { childList: true });
+  }
 })();
 //# sourceURL=kw-hab/css-bootstrap.js
 ''';
