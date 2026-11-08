@@ -1,0 +1,5 @@
+/* The profile's "Posts" card (Filters, Manage posts, List view / Grid view),
+   tagged by js/profile-posts.js. */
+[data-kw-hidden="profile-posts"] {
+  display: none !important;
+}

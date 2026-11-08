@@ -255,6 +255,26 @@ kwHab.onElement('div[role="dialog"][aria-label="Reactions"]', function (popup) {
   }
 });
 
+// ---- Own posts' menu ------------------------------------------------------
+// The user's own posts keep the ⋯ menu. Hidden from it: Save post (the row's
+// Save button does that, and still clicks the hidden item), and items that are
+// rarely wanted and easy to misread: Turn off notifications for this post,
+// Turn off translations, Edit date and Embed. Move to archive is hidden too: archived
+// posts are only found again in the Activity log, which isn't reachable here,
+// so Move to trash (kept 30 days) is the one way to remove a post. Pin post,
+// Edit post, Edit audience, "Who can comment on your post?" and (on profile
+// and cover photo updates, which have no trash) Hide from profile stay.
+
+var OWN_MENU_HIDDEN = /^(Save post|Unsave post|Turn (off|on) notifications for this post|Turn (off|on) translations|Edit date|Move to archive|Embed$)/i;
+
+kwHab.onElement('[role="menu"] :is([role="menuitem"], [role="button"])', function (item) {
+  if (!document.querySelector(POST_MENU + '[aria-expanded="true"]')) return;
+  var title = titleOf(item);
+  if (!OWN_MENU_HIDDEN.test(title) || item.hasAttribute('data-kw-post-menu-hidden')) return;
+  item.setAttribute('data-kw-post-menu-hidden', '');
+  kwHab.log('post-menu', 'hid', title, '(menu)');
+});
+
 // ---- Working the hidden menu ---------------------------------------------
 
 function waitFor(find, timeout) {
@@ -268,10 +288,21 @@ function waitFor(find, timeout) {
   });
 }
 
+// An item's title: its first piece of text. textContent would run the title
+// into the line under it ("Save postAdd this to your saved items").
+function titleOf(item) {
+  var walker = document.createTreeWalker(item, NodeFilter.SHOW_TEXT);
+  for (var node = walker.nextNode(); node; node = walker.nextNode()) {
+    var text = node.nodeValue.trim();
+    if (text) return text;
+  }
+  return '';
+}
+
 function findSaveItem() {
   var items = document.querySelectorAll('[role="menu"] [role="button"], [role="menu"] [role="menuitem"]');
   for (var i = 0; i < items.length; i++) {
-    if (SAVE_ITEM.test((items[i].textContent || '').trim())) return items[i];
+    if (SAVE_ITEM.test(titleOf(items[i]))) return items[i];
   }
   return null;
 }
@@ -303,7 +334,7 @@ function toggleSave(button) {
       closeMenu(menuButton);
       return;
     }
-    var isSaved = /^Unsave/i.test(item.textContent.trim());
+    var isSaved = /^Unsave/i.test(titleOf(item));
     if (isSaved !== wantSaved) {
       item.click();
       kwHab.log('post-menu', wantSaved ? 'saved' : 'unsaved', menuButton.getAttribute('aria-label'));

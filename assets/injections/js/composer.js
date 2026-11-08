@@ -1,8 +1,12 @@
 // The "What's on your mind, <name>?" composer at the top of the feed (and on
 // your own profile). Its shortcut buttons are Live video, Photo/video and
-// Feeling/activity. Only Photo/video is kept. Feeling/activity is still in
-// the "Add to your post" row of the post dialog. Live video is removed from
-// the dialog as well (js/post-dialog.js), so it is gone everywhere.
+// Feeling/activity (on the profile, Photo/video and Life update). Only
+// Photo/video is kept. Feeling/activity is still in the "Add to your post"
+// row of the post dialog. Live video and Life update are removed from the
+// dialog as well (js/post-dialog.js), so they are gone everywhere. Life
+// update walks the user through adding where they live and work, their
+// relationship and their health to their profile, so it's hidden for safety;
+// a normal post can still share the news.
 //
 // css/composer.css hides the aria-labelled buttons before the page paints
 // (no flash). Facebook has also shipped them as plain text, which CSS can't
@@ -11,7 +15,7 @@
 // hidden, never those inside the post dialog.
 
 var HIDDEN = 'data-kw-composer-hidden';
-var DROP = /^(Live video|Feeling\/activity)$/i;
+var DROP = /^(Live video|Feeling\/activity|Life update)$/i;
 var PROMPT = /^What's on your mind/i;
 var MAX_DEPTH = 10;
 
