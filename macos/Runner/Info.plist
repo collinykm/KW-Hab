@@ -23,13 +23,13 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Facebook uses the camera for video calls and live video.</string>
+	<string>KW Connect uses the camera for video calls and live video.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>$(PRODUCT_COPYRIGHT)</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Facebook uses the microphone for calls and videos.</string>
+	<string>KW Connect uses the microphone for calls and videos.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

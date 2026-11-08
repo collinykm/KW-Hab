@@ -1,5 +1,5 @@
 /* Top bar (div[role="banner"]).
- * Left: Facebook logo + search (unchanged).
+ * Left: the app's logo (in place of Facebook's) + search.
  * Middle: Home, Friends, Reels, and Messages and Saved tabs added by js/top-bar.js.
  * Right: only the profile button, whose menu js/top-bar.js trims down.
  * Every middle tab and the profile button get a text label under the icon. */
@@ -134,5 +134,17 @@ html[data-kw-big-taps] div[role="banner"] label:has(> input[role="combobox"]) > 
 /* Profile menu: everything js/top-bar.js marks as not kept. */
 div[role="dialog"][aria-label="Your profile"] [data-kw-top-bar-hidden],
 div[role="dialog"][aria-label="Your profile"] footer[role="contentinfo"] {
+  display: none !important;
+}
+
+/* Left: the app's own logo (design/logo_circle.svg) in place of Facebook's.
+ * Facebook's logo is an <svg> in the "Facebook" home link; its shapes are
+ * hidden and the <svg> box (which keeps its size, so the search box still
+ * fits around it) shows ours as a background. */
+div[role="banner"] a[aria-label="Facebook"] svg {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%234FA3FF'/%3E%3Cstop offset='1' stop-color='%231466E0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='512' cy='512' r='512' fill='url(%23bg)'/%3E%3Cg transform='translate(-55 -60) scale(1.05)'%3E%3Cg fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M455 790 V480 Q455 300 625 300' stroke-width='120'/%3E%3Cpath d='M350 520 H590' stroke-width='110'/%3E%3C/g%3E%3Cpath transform='translate(730 640) rotate(10) scale(1.2)' d='M0,58 C-62,18 -72,-22 -46,-44 C-26,-60 -6,-50 0,-30 C6,-50 26,-60 46,-44 C72,-22 62,18 0,58 Z' fill='%23FF6B6B'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat !important;
+  border-radius: 50% !important;
+}
+div[role="banner"] a[aria-label="Facebook"] svg > * {
   display: none !important;
 }

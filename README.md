@@ -1,4 +1,4 @@
-# kw_hab
+# KW Connect
 
 A new Flutter project.
 

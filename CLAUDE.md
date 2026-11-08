@@ -27,7 +27,7 @@ Injected JS runs inside Facebook's page, so Facebook's own scripts can read anyt
 ```bash
 flutter run -d macos                 # run; press R (hot restart) to pick up asset/CSS/JS changes
 flutter run -d <android-or-ios-device> # phones/tablets (`flutter devices` lists them)
-flutter build macos --debug          # build to build/macos/Build/Products/Debug/kw_hab.app
+flutter build macos --debug          # build to build/macos/Build/Products/Debug/KW Connect.app
 flutter analyze                      # lint (flutter_lints)
 flutter test                         # all tests
 flutter test test/injection_bundle_test.dart --plain-name "<test name>"   # single test

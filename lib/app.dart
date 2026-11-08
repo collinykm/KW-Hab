@@ -32,7 +32,7 @@ class FacebookApp extends StatelessWidget {
       child: ListenableBuilder(
         listenable: settings,
         builder: (context, _) => MaterialApp(
-          title: 'Facebook',
+          title: 'KW Connect',
           debugShowCheckedModeBanner: false,
           theme: buildAppTheme(settings.accessibility),
           builder: (context, child) =>

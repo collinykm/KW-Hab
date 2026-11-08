@@ -7,13 +7,13 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Facebook</string>
+	<string>KW Connect</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Facebook uses the camera for video calls and live video.</string>
+	<string>KW Connect uses the camera for video calls and live video.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Facebook uses the microphone for calls, videos and Talk to type.</string>
+	<string>KW Connect uses the microphone for calls, videos and Talk to type.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Facebook uses your photos so you can share them in posts and messages.</string>
+	<string>KW Connect uses your photos so you can share them in posts and messages.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -21,7 +21,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>kw_hab</string>
+	<string>KW Connect</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
