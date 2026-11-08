@@ -1,0 +1,29 @@
+/* "See more" / "See less" in captions (posts, reels) and comments, tagged by
+ * js/see-more.js. Same boxed look as the See more and Reply buttons in
+ * css/comments.css; keep the two in step.
+ * Everything is !important: this sheet loads before Facebook's, and their
+ * single-class rules (border: none, padding: 0) would otherwise win. */
+
+.kw-see-more {
+  display: inline-block !important;
+  margin: 4px 0 0 2px !important;
+  padding: 2px 10px !important;
+  border: 2px solid var(--primary-button-background) !important;
+  border-radius: 8px !important;
+  color: var(--primary-button-background) !important;
+  font-weight: 600 !important;
+  line-height: 20px !important;
+}
+.kw-see-more:hover {
+  background-color: var(--hover-overlay) !important;
+  text-decoration: none !important;
+}
+
+/* Reel captions sit on the video, where blue on dark is hard to read. A white
+ * fill makes it look as it does in comments and posts. */
+[role="group"][aria-label="Video player"] .kw-see-more {
+  background-color: #fff !important;
+}
+[role="group"][aria-label="Video player"] .kw-see-more:hover {
+  background-color: #e4e6eb !important;
+}
