@@ -1,0 +1,6 @@
+/* A single event's page (/events/<id>): no left column, and no "⋯" button
+ * (tagged by js/events.js). */
+[role="navigation"][aria-label="Event Permalink Left Rail"],
+[data-kw-hidden="events"] {
+  display: none !important;
+}

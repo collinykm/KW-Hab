@@ -1,0 +1,7 @@
+/* A group's page: no recommended-groups arrow, search button or "⋯" button
+ * (tagged by js/groups.js) in the header. */
+[role="main"] [role="button"][aria-label="See recommended groups"],
+[role="main"] [role="button"][aria-label="Search within this group"],
+[data-kw-hidden="groups"] {
+  display: none !important;
+}

@@ -1,0 +1,33 @@
+/* The "Result filters" column on Facebook's search results page. Top-level
+ * options sit in a list; the filters under the selected option sit in a list
+ * inside it. */
+
+/* Starts below the Back button (css/back-button.css: 110px from the top of the
+ * window, zoomed by Button size). The column itself starts at 56px. */
+[role="region"][aria-label="Result filters"] > div {
+  box-sizing: border-box !important;
+  padding-top: calc(110px * var(--kw-button-scale, 1) - 48px) !important;
+}
+
+/* Options removed from the column. */
+[role="region"][aria-label="Result filters"] [role="listitem"]:is(
+  :has(a[href*="/search/top/"]),
+  :has(a[href*="/search/videos/"]),
+  :has(a[href*="/marketplace/"]),
+  :has(a[href*="/search/pages/"])
+) {
+  display: none !important;
+}
+
+/* People: none of its filters. */
+[role="region"][aria-label="Result filters"] [role="list"] [role="list"]:has(input[aria-label="Friends"]) {
+  display: none !important;
+}
+
+/* Events: only Dates and Location. */
+[role="region"][aria-label="Result filters"] [role="list"] [role="list"] [role="listitem"]:is(
+  :has([aria-label^="Filter by Categories"]),
+  :has(input[aria-label="Popular with friends"])
+) {
+  display: none !important;
+}
