@@ -1,0 +1,4 @@
+/* Left "Reels" menu on the Reels page; tagged by js/reels-menu.js. */
+[data-kw-hidden="reels-menu"] {
+  display: none !important;
+}
