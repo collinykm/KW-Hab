@@ -1,0 +1,8 @@
+/* The round "New message" button Facebook floats in the bottom-right corner
+ * (next to the docked chat bubbles) is hidden. Messages can still be started
+ * from Messenger: the "New message" button in the Chats list and in the
+ * Messenger menu in the top bar (that one sits in a dialog, so it is kept). */
+
+[role="button"][aria-label="New message"]:not([role="dialog"] *) {
+  display: none !important;
+}

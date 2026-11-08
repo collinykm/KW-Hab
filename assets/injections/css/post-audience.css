@@ -1,0 +1,6 @@
+/* The audience icon (globe, friends, lock, …) after a post's date, and the
+ * " · " in front of it, tagged by js/post-audience.js. */
+
+[data-kw-post-audience-hidden] {
+  display: none !important;
+}
