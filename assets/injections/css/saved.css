@@ -1,0 +1,7 @@
+/* The Saved page (/saved/, opened from the top bar's Saved tab). The gear
+ * beside its "Saved" heading, which opens the saved-items reminder settings,
+ * is hidden; js/saved.js finds and tags it. */
+
+[data-kw-hidden="saved"] {
+  display: none !important;
+}

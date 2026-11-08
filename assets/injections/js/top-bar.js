@@ -1,7 +1,9 @@
 // Top bar (div[role="banner"]). See css/top-bar.css for what is hidden.
 //
-// Middle: adds a Messages tab after Reels, built by cloning Facebook's Reels
-// tab so it looks the same. It opens full-screen Messenger (/messages/).
+// Middle: adds Messages and Saved tabs after Reels, built by cloning
+// Facebook's Reels tab so they look the same. Messages opens full-screen
+// Messenger (/messages/); Saved opens the user's saved posts (/saved/), which
+// was only reachable from the hidden left column.
 // Every tab, and the profile button, gets a text label under its icon.
 //
 // Profile menu: keeps the profile name link (with a "View my profile" hint),
@@ -9,6 +11,8 @@
 // Log out. Everything else is hidden.
 
 var MESSAGES_PATH = '/messages/';
+// The user's saved posts (the left column that linked there is hidden).
+var SAVED_PATH = '/saved/';
 // TODO: replace with KW Hab's own settings screen once it exists.
 var SETTINGS_URL = '#kw-settings';
 
@@ -49,10 +53,17 @@ kwHab.onElement(MAIN_NAV + ' a[role="link"][aria-label]', function (link) {
   setLabel(link, link.getAttribute('aria-label').split(',')[0]);
 });
 
-function updateMessagesTab() {
-  var active = location.pathname.indexOf(MESSAGES_PATH) === 0;
-  document.querySelectorAll('.kw-top-bar-messages').forEach(function (item) {
+// Tabs added after Reels, each a clone of Facebook's Reels tab. Facebook
+// drives its own tabs' highlight from React, so ours follow the URL instead.
+var ADDED_TABS = [
+  { name: 'messages', label: 'Messages', path: MESSAGES_PATH },
+  { name: 'saved', label: 'Saved', path: SAVED_PATH },
+];
+
+function updateAddedTabs() {
+  document.querySelectorAll('.kw-top-bar-added').forEach(function (item) {
     var link = item.querySelector('a');
+    var active = location.pathname.indexOf(link.getAttribute('href')) === 0;
     if (active) {
       item.setAttribute('data-kw-active', '');
       link.setAttribute('aria-current', 'page');
@@ -63,26 +74,33 @@ function updateMessagesTab() {
   });
 }
 
-kwHab.onElement(MAIN_NAV + ' a[aria-label="Reels"]', function (reels) {
-  var tab = reels.closest('li');
-  if (!tab || tab.parentElement.querySelector('.kw-top-bar-messages')) return;
-
-  var item = tab.cloneNode(true);
-  item.classList.add('kw-top-bar-messages');
+function makeTab(reelsTab, tab) {
+  var item = reelsTab.cloneNode(true);
+  item.classList.add('kw-top-bar-added', 'kw-top-bar-' + tab.name);
   var link = item.querySelector('a');
-  link.setAttribute('aria-label', 'Messages');
-  link.setAttribute('href', MESSAGES_PATH);
+  link.setAttribute('aria-label', tab.label);
+  link.setAttribute('href', tab.path);
   link.removeAttribute('aria-current');
   if (link.previousElementSibling) link.previousElementSibling.classList.add('kw-top-bar-indicator');
   var svg = link.querySelector('svg');
-  if (svg) setIcon(svg, 'messages');
-  setLabel(link, 'Messages');
+  if (svg) setIcon(svg, tab.name);
+  setLabel(link, tab.label);
+  return item;
+}
 
-  tab.after(item);
-  updateMessagesTab();
+kwHab.onElement(MAIN_NAV + ' a[aria-label="Reels"]', function (reels) {
+  var reelsTab = reels.closest('li');
+  if (!reelsTab || reelsTab.parentElement.querySelector('.kw-top-bar-added')) return;
+  var after = reelsTab;
+  ADDED_TABS.forEach(function (tab) {
+    var item = makeTab(reelsTab, tab);
+    after.after(item);
+    after = item;
+  });
+  updateAddedTabs();
 });
 
-kwHab.onNavigate(updateMessagesTab);
+kwHab.onNavigate(updateAddedTabs);
 
 // ---- Profile button -------------------------------------------------------
 
