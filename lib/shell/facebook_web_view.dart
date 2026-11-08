@@ -4,6 +4,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../injections/injection_bundle.dart';
 import 'downloads.dart';
+import 'page_bridge.dart';
 import 'url_routing.dart';
 
 /// Appended to WebKit's default user agent so Facebook serves the full desktop
@@ -29,6 +30,7 @@ class FacebookWebView extends StatelessWidget {
   const FacebookWebView({
     super.key,
     required this.injections,
+    this.bridges = const [],
     this.initialUrl,
     this.windowId,
     this.onCreated,
@@ -40,6 +42,9 @@ class FacebookWebView extends StatelessWidget {
   });
 
   final InjectionBundle injections;
+
+  /// Dart services page scripts can call; attached to every instance.
+  final List<PageBridge> bridges;
   final String? initialUrl;
 
   /// Set when this web view backs a `window.open()` popup.
@@ -60,7 +65,12 @@ class FacebookWebView extends StatelessWidget {
           initialUrl == null ? null : URLRequest(url: WebUri(initialUrl!)),
       initialSettings: _webViewSettings(),
       initialUserScripts: injections.userScripts(),
-      onWebViewCreated: onCreated,
+      onWebViewCreated: (controller) {
+        for (final bridge in bridges) {
+          bridge.attach(controller);
+        }
+        onCreated?.call(controller);
+      },
       onLoadStart: (_, _) => onLoadStart?.call(),
       onProgressChanged: (_, p) => onProgress?.call(p / 100),
       onTitleChanged: (_, t) => onTitle?.call(t),
@@ -94,6 +104,13 @@ class FacebookWebView extends StatelessWidget {
         if (context.mounted) downloadFile(context, request);
         return DownloadStartResponse(handled: true);
       },
+      // Debug builds: show our page scripts' logs and errors in the
+      // `flutter run` output, not just the Web Inspector.
+      onConsoleMessage: kDebugMode
+          ? (controller, message) {
+              if (message.message.contains('kwHab')) debugPrint('page: ${message.message}');
+            }
+          : null,
       onReceivedError: (controller, request, error) {
         if (request.isForMainFrame != true) return;
         // Cancelled navigations (e.g. links we sent to the browser) aren't errors.
@@ -136,6 +153,7 @@ class FacebookWebView extends StatelessWidget {
                 Expanded(
                   child: FacebookWebView(
                     injections: injections,
+                    bridges: bridges,
                     windowId: windowId,
                     onClose: () {
                       if (Navigator.of(dialogContext).canPop()) {
