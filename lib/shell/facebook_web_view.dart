@@ -70,6 +70,7 @@ class FacebookWebView extends StatelessWidget {
         for (final bridge in bridges) {
           bridge.attach(controller);
         }
+        WindowsMessengerWorker.watch(controller);
         onCreated?.call(controller);
       },
       onLoadStart: (_, _) => onLoadStart?.call(),
