@@ -58,7 +58,7 @@ The full conventions are in `assets/injections/README.md`. The key points:
 
 `AppSettings` (a `ChangeNotifier`, built and loaded in `main.dart`) is the single source of truth for user settings, saved to `settings.json` in Application Support on every change. Reach it from widgets with `SettingsScope.of(context)`, from Dart services by taking it as a constructor argument, and from page JS/CSS through `kwHab.settings` / `--kw-*` (pushed by `PageSettingsBridge`; see `assets/injections/README.md`). Only accessibility settings go to the page; support contacts stay in Dart. Flutter screens get text size/bold/button size from `accessibility_theme.dart`.
 
-Onboarding (`lib/screens/onboarding/`) is shown by `FacebookShell` after a page load when Facebook's `c_user` login cookie is present and `onboardingComplete` is false, and again from the app menu's Settings… (⌘,).
+Onboarding (`lib/screens/onboarding/`) is shown by `FacebookShell` after a page load when Facebook's `c_user` login cookie is present and `onboardingComplete` is false, and again from the app menu's Settings… (⌘,) or the "Settings" item `js/top-bar.js` adds to Facebook's profile menu (via the `kwOpenSettings` bridge, `OpenSettingsBridge`).
 
 ## Shell (`lib/shell/` + `macos/Runner/`)
 

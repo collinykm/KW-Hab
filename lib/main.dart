@@ -6,6 +6,7 @@ import 'app.dart';
 import 'injections/injection_bundle.dart';
 import 'monitoring/monitoring_setup.dart';
 import 'settings/app_settings.dart';
+import 'settings/open_settings_bridge.dart';
 import 'settings/page_settings_bridge.dart';
 import 'shell/page_bridge.dart';
 
@@ -19,6 +20,7 @@ Future<void> main() async {
   // Dart services page scripts can call (see lib/shell/page_bridge.dart).
   final bridges = <PageBridge>[
     PageSettingsBridge(settings),
+    OpenSettingsBridge(),
     ?createMessageMonitorBridge(settings),
   ];
   runApp(FacebookApp(injections: injections, settings: settings, bridges: bridges));
