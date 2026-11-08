@@ -1,0 +1,61 @@
+/* The Reels viewer. js/reels.js tags most of what is hidden here.
+ * - Top of the video: no mute, search or fullscreen buttons. Sound is always
+ *   on (js/reels.js unmutes).
+ * - Action column: Like, Comment, Share and a Save button (built by
+ *   js/reels.js), each with a word under its icon. The "…" menu button is
+ *   hidden; Save drives that menu behind the scenes.
+ * - Creator: only the picture and name. The globe (audience), Follow button
+ *   and the "♫ … · Original audio" line are hidden.
+ * The overlay buttons are only hidden in players that have "Search Reel",
+ * which only reels have, so feed videos keep their own controls. */
+
+[data-kw-reels-hidden] {
+  display: none !important;
+}
+
+/* ---- Top of the video --------------------------------------------------- */
+
+[role="group"][aria-label="Video player"]:has([aria-label="Search Reel"]) :is(
+  [role="button"][aria-label="Mute"],
+  [role="button"][aria-label="Unmute"],
+  [role="button"][aria-label="Search Reel"],
+  [role="button"][aria-label="Enter fullscreen"],
+  [role="button"][aria-label="Exit fullscreen"]
+) {
+  display: none !important;
+}
+
+/* ---- Action column ------------------------------------------------------ */
+
+/* Facebook's buttons are 48px wide, too narrow for "Comment". The column
+ * (tagged by js/reels.js) sits in a 72px track, so widen to that. */
+.kw-reels-actions,
+.kw-reels-actions > *,
+.kw-reels-actions [role="button"]:not([aria-label="React"]) {
+  width: 72px !important;
+}
+/* The icon/label/count stack inside each button only spans its widest line
+ * and sits at the left; centre it in the wider button. */
+.kw-reels-actions [role="button"]:not([aria-label="React"]) > div:first-child {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Same look as the counts under the icons; js/reels.js copies the count's
+ * colour onto it (blue while the button is active). */
+.kw-reels-label {
+  display: block;
+  margin: 2px 0 5px;
+  color: var(--always-white, #fff);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* While Save opens the "…" menu to press "Save reel", keep the menu unseen. */
+html[data-kw-reels-saving] [role="menu"][aria-label="Video options"] {
+  opacity: 0 !important;
+}
