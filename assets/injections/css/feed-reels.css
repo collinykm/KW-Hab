@@ -1,0 +1,13 @@
+/* The "Reels" carousel between posts in a feed. Reels stay one click away in
+ * the top bar. Only a sideways-scrolling Reels grid is matched, so a page of
+ * reels (e.g. a profile's Reels tab) is left alone.
+ *
+ * This rule applies before first paint, so the carousel never shows. It hides
+ * the feed unit's [data-virtualized] wrapper; js/feed-reels.js then tags the
+ * outermost wrapper (which carries the 12px gap to the next post) so no extra
+ * space is left behind. */
+
+[data-virtualized]:has([role="grid"][aria-label="Reels"] [data-type="hscroll-child"]),
+[data-kw-feed-reels-hidden] {
+  display: none !important;
+}
