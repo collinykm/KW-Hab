@@ -1,0 +1,87 @@
+/* "Read aloud" button from js/read-aloud.js: large, labelled, Facebook-blue. */
+.kw-read-aloud {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  margin: 8px 16px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--primary-deemphasized-button-background, #ebf5ff);
+  color: var(--primary-deemphasized-button-text, #0866ff);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.kw-read-aloud:hover {
+  filter: brightness(0.96);
+}
+
+.kw-read-aloud:focus-visible {
+  outline: 3px solid var(--accent, #0866ff);
+  outline-offset: 2px;
+}
+
+.kw-read-aloud__icon {
+  flex: none;
+}
+
+.kw-read-aloud__icon--stop,
+.kw-read-aloud[data-state="playing"] .kw-read-aloud__icon--speak {
+  display: none;
+}
+
+.kw-read-aloud[data-state="playing"] .kw-read-aloud__icon--stop {
+  display: block;
+}
+
+/* While playing, make "Stop reading" stand out. */
+.kw-read-aloud[data-state="playing"] {
+  background: var(--primary-button-background, #0866ff);
+  color: #fff;
+}
+
+.kw-read-aloud[data-state="loading"] {
+  opacity: 0.75;
+  cursor: progress;
+}
+
+.kw-read-aloud[data-state="error"] {
+  background: var(--secondary-button-background, #e4e6eb);
+  color: var(--primary-text, #050505);
+}
+
+/* Chat messages: beside the bubble, between it and the hover icons. The cell
+   fills the row's height with an opaque background, like Messenger's own
+   slots, so the bubble gradient doesn't show around the button. */
+.kw-read-aloud-cell {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding: 0 8px;
+  background: var(--surface-background, #fff);
+}
+
+/* Fallback when a message's layout is unknown: a row of its own under the
+   bubble, with a plain background so Messenger's gradient doesn't show through. */
+.kw-read-aloud-row {
+  display: flex;
+  justify-content: flex-start;
+  padding: 2px 12px 8px 52px;
+  background: var(--surface-background, #fff);
+}
+
+.kw-read-aloud-row[data-side="end"] {
+  justify-content: flex-end;
+  padding-left: 12px;
+}
+
+.kw-read-aloud--message {
+  margin: 0;
+  min-height: 32px;
+  padding: 4px 12px;
+  font-size: 14px;
+}

@@ -18,5 +18,14 @@ class NativeShell {
           });
   }
 
-  static Future<void> setTitle(String title) => _channel.invokeMethod('setTitle', title);
+  /// Only macOS implements this; elsewhere (e.g. the Windows runner) there is
+  /// no native handler, so skip it quietly instead of logging an error on
+  /// every page title change.
+  static Future<void> setTitle(String title) async {
+    try {
+      await _channel.invokeMethod('setTitle', title);
+    } on MissingPluginException {
+      // No native side on this platform.
+    }
+  }
 }

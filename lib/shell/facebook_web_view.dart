@@ -6,6 +6,7 @@ import '../injections/injection_bundle.dart';
 import 'downloads.dart';
 import 'page_bridge.dart';
 import 'url_routing.dart';
+import 'windows_messenger_worker.dart';
 
 /// Appended to WebKit's default user agent so Facebook serves the full desktop
 /// Safari experience instead of an "unsupported browser" fallback.
@@ -72,6 +73,7 @@ class FacebookWebView extends StatelessWidget {
         onCreated?.call(controller);
       },
       onLoadStart: (_, _) => onLoadStart?.call(),
+      onLoadStop: (controller, _) => WindowsMessengerWorker.resume(controller),
       onProgressChanged: (_, p) => onProgress?.call(p / 100),
       onTitleChanged: (_, t) => onTitle?.call(t),
       onCloseWindow: (_) => onClose?.call(),
