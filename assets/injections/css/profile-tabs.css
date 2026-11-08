@@ -6,8 +6,8 @@
   display: none !important;
 }
 
-/* The Reels and Groups tabs are copies of the (unselected) Photos tab, so mark
-   the one for the current page the way Facebook marks its selected tab. */
+/* The Groups tab is a copy of an unselected tab, so mark it on the Groups page
+   the way Facebook marks its selected tab. */
 [data-kw-tab][data-kw-active] {
   color: var(--accent, #0866ff) !important;
   box-shadow: inset 0 -3px 0 var(--accent, #0866ff);

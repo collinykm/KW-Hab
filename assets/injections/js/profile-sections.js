@@ -1,11 +1,12 @@
 // Profile section pages show one thing only:
 //   About  -> just the Bio (left alone when the profile has no bio)
+//   Photos -> just the Photos card (not the Reels / Groups cards under it)
 //   Reels  -> just the Reels card (not the Groups card under it)
 //   Groups -> just the Groups card
 // Every other section below the tab bar is tagged; css/profile-sections.css
 // hides it.
 
-var KEEP_BY_SECTION = { about: 'Bio', reels_tab: 'Reels', groups: 'Groups' };
+var KEEP_BY_SECTION = { about: 'Bio', photos: 'Photos', reels_tab: 'Reels', groups: 'Groups' };
 
 function currentSection() {
   return new URL(location.href).searchParams.get('sk') ||
@@ -22,6 +23,11 @@ function outsideOf(el, keeper) {
 }
 
 function trim() {
+  // Facebook's own tabs switch without a reload and may reuse wrappers, so
+  // start from a clean slate each time.
+  var stale = document.querySelectorAll('[data-kw-hidden="profile-section"]');
+  for (var s = 0; s < stale.length; s++) stale[s].removeAttribute('data-kw-hidden');
+
   var keepTitle = KEEP_BY_SECTION[currentSection()];
   if (!keepTitle) return;
   var tabs = document.querySelector('[role="tab"][aria-label="More profile sections"]');

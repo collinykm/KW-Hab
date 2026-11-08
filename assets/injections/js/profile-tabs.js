@@ -2,7 +2,7 @@
 // the About and Photos tabs (plus Reels and Groups on the user's own profile);
 // hide the "See recommendations" chevron, its "People You May Know" panel and
 // the "•••" button.
-// css/profile-tabs.css hides whatever gets tagged and styles the added tabs.
+// css/profile-tabs.css hides whatever gets tagged and styles the added tab.
 
 // The tab a profile link points to: "all" (the bare profile), or its section
 // name, from either ?sk=<section> or /<username>/<section>.
@@ -15,19 +15,23 @@ function profileSection(href) {
   return parts[parts.length - 1];
 }
 
-// Facebook drops some tabs' href after it hydrates, so fall back to the label.
-var KEPT_LABELS = { About: true, Photos: true };
-var KEPT_SECTIONS = { about: true, photos: true };
+// Which Facebook tab this is. Facebook drops some tabs' href after it
+// hydrates, so fall back to the label.
+var SECTION_BY_LABEL = { About: 'about', Photos: 'photos', Reels: 'reels_tab' };
+function tabSection(tab) {
+  var href = tab.getAttribute('href');
+  return href ? profileSection(href) : SECTION_BY_LABEL[tab.textContent.trim()] || null;
+}
 
-// Tabs we add on the user's own profile, copied from the Photos tab so they
-// look like Facebook's own.
-var ADDED_TABS = [
-  { section: 'reels_tab', label: 'Reels' },
-  { section: 'groups', label: 'Groups' },
-];
+var KEPT_SECTIONS = { about: true, photos: true };
 
 function hide(el) {
   el.setAttribute('data-kw-hidden', 'profile-tab');
+}
+
+// Only the user's own profile has an "Edit profile" button.
+function isOwnProfile() {
+  return !!document.querySelector('[role="main"] [aria-label="Edit profile"]');
 }
 
 // The same profile's URL for another section, built from the About tab's link.
@@ -41,39 +45,48 @@ function sectionUrl(aboutHref, section) {
   return url.href;
 }
 
-function relabel(tab, label) {
+function relabel(tab, from, label) {
   var walker = document.createTreeWalker(tab, NodeFilter.SHOW_TEXT);
   for (var node = walker.nextNode(); node; node = walker.nextNode()) {
-    if (node.nodeValue.trim() === 'Photos') node.nodeValue = label;
+    if (node.nodeValue.trim() === from) node.nodeValue = label;
   }
 }
 
-// Only the user's own profile has an "Edit profile" button.
-function isOwnProfile() {
-  return !!document.querySelector('[role="main"] [aria-label="Edit profile"]');
-}
-
-// Remembered so the tabs can still be added if "Edit profile" loads after them.
+// The current profile's tab bar and Facebook's own tabs in it.
 var profileTabs = null;
 
-function addTabs(tablist, aboutTab, photosTab) {
-  if (!isOwnProfile()) return;
-  var old = tablist.querySelectorAll('[data-kw-tab]');
-  for (var i = 0; i < old.length; i++) old[i].remove();
+// Own profile only: show Facebook's real Reels tab (it switches instantly),
+// and add a Groups tab. Facebook only has Groups inside its "More" menu, which
+// won't open for scripted clicks, so this Groups tab is a plain link and does
+// a full page load.
+function addOwnProfileTabs() {
+  var t = profileTabs;
+  if (!t || !t.tablist.isConnected || !isOwnProfile()) return;
+  if (t.tablist.querySelector('[data-kw-tab]')) return;
 
-  var current = profileSection(location.href);
-  var after = photosTab;
-  ADDED_TABS.forEach(function (spec) {
-    var tab = photosTab.cloneNode(true);
-    tab.setAttribute('data-kw-tab', spec.section);
-    tab.setAttribute('href', sectionUrl(aboutTab.href, spec.section));
-    tab.setAttribute('aria-selected', current === spec.section ? 'true' : 'false');
-    if (current === spec.section) tab.setAttribute('data-kw-active', '');
-    tab.removeAttribute('data-kw-hidden');
-    relabel(tab, spec.label);
-    after.parentNode.insertBefore(tab, after.nextSibling);
-    after = tab;
-  });
+  if (t.reels) t.reels.removeAttribute('data-kw-hidden');
+
+  // Copy a tab that isn't selected, so the copy doesn't inherit its highlight.
+  var template = t.photos.getAttribute('aria-selected') === 'true' ? t.about : t.photos;
+  var groups = template.cloneNode(true);
+  groups.setAttribute('data-kw-tab', 'groups');
+  groups.setAttribute('href', sectionUrl(t.about.href, 'groups'));
+  groups.removeAttribute('data-kw-hidden');
+  relabel(groups, template === t.about ? 'About' : 'Photos', 'Groups');
+  var after = t.reels || t.photos;
+  after.parentNode.insertBefore(groups, after.nextSibling);
+  markActiveTab();
+}
+
+// Highlight our Groups tab on the Groups page. Facebook's own tabs switch
+// without a reload, so this has to follow every in-app navigation.
+function markActiveTab() {
+  var groups = document.querySelector('[data-kw-tab="groups"]');
+  if (!groups) return;
+  var active = profileSection(location.href) === 'groups';
+  groups.setAttribute('aria-selected', active ? 'true' : 'false');
+  if (active) groups.setAttribute('data-kw-active', '');
+  else groups.removeAttribute('data-kw-active');
 }
 
 kwHab.onElement('[role="tab"][aria-label="More profile sections"]', function (more) {
@@ -81,41 +94,29 @@ kwHab.onElement('[role="tab"][aria-label="More profile sections"]', function (mo
   if (!tablist) return;
   hide(more);
 
-  var aboutTab = null;
-  var photosTab = null;
+  var found = { tablist: tablist, about: null, photos: null, reels: null };
   var tabs = tablist.querySelectorAll('[role="tab"]:not([data-kw-tab])');
   for (var i = 0; i < tabs.length; i++) {
-    var href = tabs[i].getAttribute('href');
-    var label = tabs[i].innerText.trim();
-    var section = href ? profileSection(href) : null;
-    var kept = section ? KEPT_SECTIONS[section] : KEPT_LABELS[label];
-    if (!kept) {
-      hide(tabs[i]);
-      continue;
-    }
-    if (section === 'about' || label === 'About') aboutTab = tabs[i];
-    if (section === 'photos' || label === 'Photos') photosTab = tabs[i];
+    var section = tabSection(tabs[i]);
+    if (section === 'about') found.about = tabs[i];
+    if (section === 'photos') found.photos = tabs[i];
+    if (section === 'reels_tab') found.reels = tabs[i];
+    if (!KEPT_SECTIONS[section]) hide(tabs[i]);
   }
-  if (!aboutTab || !aboutTab.href) return;
-
-  if (photosTab) {
-    profileTabs = { tablist: tablist, about: aboutTab, photos: photosTab };
-    addTabs(tablist, aboutTab, photosTab);
-  }
+  if (!found.about || !found.about.href || !found.photos) return;
+  profileTabs = found;
+  addOwnProfileTabs();
 
   // Land on About instead of the All (posts) view. replace() keeps the All
   // view out of history, so Back doesn't bounce the user straight here again.
   if (profileSection(location.href) === 'all') {
-    location.replace(aboutTab.href);
+    location.replace(found.about.href);
   }
 });
 
 // "Edit profile" can render after the tab bar; add the own-profile tabs then.
-kwHab.onElement('[role="main"] [aria-label="Edit profile"]', function () {
-  if (!profileTabs || !profileTabs.tablist.isConnected) return;
-  if (profileTabs.tablist.querySelector('[data-kw-tab]')) return;
-  addTabs(profileTabs.tablist, profileTabs.about, profileTabs.photos);
-});
+kwHab.onElement('[role="main"] [aria-label="Edit profile"]', addOwnProfileTabs);
+kwHab.onNavigate(markActiveTab);
 
 // The chevron and "•••" buttons next to the profile actions and the tabs.
 kwHab.onElement(
