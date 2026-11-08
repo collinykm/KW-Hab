@@ -6,7 +6,7 @@
  * (kMobilePageScript), so none of this can reach the Mac app, whatever its
  * window size. Tablets (600px and wider) keep the desktop layout.
  *
- * - The middle tabs (Home, Friends, Reels, Messages, Saved, Groups), which
+ * - The middle tabs (Home, Friends, Reels, Messages, Saved; not Groups), which
  *   Facebook hides on narrow screens, become a tab bar along the bottom.
  * - The Back button (js/back-button.js) moves into the top bar's empty middle.
  * - A docked Messenger chat fills the screen (marked by js/mobile.js).
@@ -39,7 +39,7 @@
     box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.08) !important;
   }
   /* Facebook hides each tab (and the span inside it) at this width. */
-  html[data-kw-mobile] div[role="navigation"][aria-label="Facebook"] > ul > li:not(:has(a[aria-label="Marketplace"], a[aria-label="Gaming"])) {
+  html[data-kw-mobile] div[role="navigation"][aria-label="Facebook"] > ul > li:not(:has(a[aria-label="Marketplace"], a[aria-label="Gaming"], a[aria-label^="Groups"])) {
     display: flex !important;
     flex: 1 1 0 !important;
     min-width: 0 !important;
