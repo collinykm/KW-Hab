@@ -112,6 +112,36 @@ function relabel(button) {
   }
 }
 
+// ---- Message list scrollbar ----------------------------------------------
+// The chat's colour is a gradient drawn behind the whole message list (the
+// bubbles are see-through windows onto it). WebKit draws the list's
+// scrollbar see-through too, so the gradient showed down the right edge as a
+// coloured stripe once the list scrolled (more of it does with bigger
+// text). css/chat-info.css paints the scrollbar's strip in the panel's
+// colour; this keeps its width (--kw-chat-gutter) up to date, 0 when there
+// is no scrollbar.
+
+var SCROLLER = 'data-kw-chat-scroller';
+
+var gutters = new ResizeObserver(function (entries) {
+  entries.forEach(function (entry) {
+    var el = entry.target;
+    el.style.setProperty('--kw-chat-gutter', Math.max(0, el.offsetWidth - el.clientWidth) + 'px');
+  });
+});
+
+kwHab.onElement('[role="main"] [role="log"]', function (log) {
+  // The scrolling box is a few levels inside the log.
+  var el = log;
+  for (var depth = 0; el && depth < 4; depth++, el = el.firstElementChild) {
+    if (/auto|scroll/.test(getComputedStyle(el).overflowY)) {
+      el.setAttribute(SCROLLER, '');
+      gutters.observe(el);
+      return;
+    }
+  }
+});
+
 // ---- Sweep ---------------------------------------------------------------
 
 setInterval(function () {

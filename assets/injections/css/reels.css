@@ -82,9 +82,9 @@
   display: block;
   margin: 2px 0 5px;
   color: var(--always-white, #fff);
-  font-size: 13px;
+  font-size: calc(0.8125rem * var(--kw-unzoom, 1));
   font-weight: 600;
-  line-height: 16px;
+  line-height: calc(1rem * var(--kw-unzoom, 1));
   text-align: center;
   white-space: nowrap;
   pointer-events: none;

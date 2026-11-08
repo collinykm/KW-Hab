@@ -46,9 +46,17 @@ bridges behind them refuse (`error: 'disabled'`) while the setting is off.
 clickable: short controls (icons, "Like 62", tabs) are zoomed whole, wide ones
 made taller (with their content zoomed if it's short), links in text get a
 bigger invisible hit area, wrappers with a fixed size are grown to fit, and
-rows whose controls get pushed out of view wrap onto a second line. Controls you add get this automatically. If a scaled control breaks
+rows whose controls get pushed out of view wrap onto a second line. Controls you add get this automatically. Words inside a zoomed control
+follow the Text size setting only (never text size times button size), and
+wide rows grow to at most 44px × the button size. If a scaled control breaks
 your area's layout, fix it in your area's CSS under `html[data-kw-big-taps]`,
 or opt an element out by giving it `data-kw-tap="big"` before it renders.
+
+Size text you add in `rem`, never `px`, so it follows the Text size setting,
+and multiply by `var(--kw-unzoom, 1)` so it isn't zoomed again inside a
+zoomed control, e.g. `font-size: calc(0.8125rem * var(--kw-unzoom, 1))`.
+Give boxes that hold text a `min-width`/`min-height` rather than a fixed
+`width`/`height`, so bigger text doesn't spill out of them.
 Support contacts are deliberately not available here (Facebook can read the
 page).
 

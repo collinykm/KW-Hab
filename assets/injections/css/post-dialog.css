@@ -90,9 +90,9 @@ div:has(> div [role="radiogroup"][aria-label="Select audience"]) > div:has(> hr)
   [role="button"][aria-label="Emoji"]
 )::after {
   margin-top: 2px;
-  font-size: 12px;
+  font-size: calc(0.75rem * var(--kw-unzoom, 1));
   font-weight: 600;
-  line-height: 16px;
+  line-height: calc(1rem * var(--kw-unzoom, 1));
   white-space: nowrap;
   color: var(--secondary-text, #65676b);
 }
@@ -101,3 +101,10 @@ div:has(> div [role="radiogroup"][aria-label="Select audience"]) > div:has(> hr)
 [role="dialog"]:has([aria-label="Close composer dialog"]) [role="button"][aria-label="Tag people"]::after { content: "Tag people"; }
 [role="dialog"]:has([aria-label="Close composer dialog"]) [role="button"][aria-label="Feeling/activity"]::after { content: "Feeling"; }
 [role="dialog"]:has([aria-label="Close composer dialog"]) [role="button"][aria-label="Emoji"]::after { content: "Emoji"; }
+
+/* Header (tagged by js/post-dialog.js): its title row, which draws the line
+ * under it, is made tall enough for the close button at a bigger button
+ * size, with the same 12px above and below it. */
+html[data-kw-big-taps] [data-kw-post-dialog-header] > div:first-child {
+  min-height: calc(36px * var(--kw-button-scale, 1) + 24px) !important;
+}

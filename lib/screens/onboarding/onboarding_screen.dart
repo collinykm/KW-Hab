@@ -221,10 +221,10 @@ class _TopBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
-            const CircleAvatar(
-              radius: 20,
+            CircleAvatar(
+              radius: textSized(context, 20),
               backgroundColor: KwColors.blue,
-              child: Icon(Icons.tune, color: Colors.white),
+              child: Icon(Icons.tune, color: Colors.white, size: textSized(context, 24)),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -289,7 +289,7 @@ class _IntroCard extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.lightbulb_outline, color: KwColors.blue),
+                  Icon(Icons.lightbulb_outline, color: KwColors.blue, size: textSized(context, 24)),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -347,9 +347,9 @@ class _RowIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => CircleAvatar(
-        radius: 20,
+        radius: textSized(context, 20),
         backgroundColor: KwColors.secondaryButton,
-        child: Icon(icon, color: KwColors.primaryText, size: 22),
+        child: Icon(icon, color: KwColors.primaryText, size: textSized(context, 22)),
       );
 }
 
@@ -575,37 +575,60 @@ class _ContactEditor extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final name = draft.name.text.trim();
 
+    final a = SettingsScope.of(context).accessibility;
+    const methods = [
+      (ContactMethod.phone, Icons.phone_outlined, 'Phone'),
+      (ContactMethod.email, Icons.email_outlined, 'Email'),
+    ];
+
     Widget methodOption(ContactMethod m, IconData icon, String label) {
       final selected = draft.method == m;
-      return Expanded(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: () {
-            draft.method = m;
-            onChanged();
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: selected ? KwColors.blueTint : null,
-              border: Border.all(color: selected ? KwColors.blue : KwColors.inputBorder),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                ScaledControl(
-                  normalSize: const Size(40, 40),
-                  child: Radio<ContactMethod>(key: Key('contact$index-prefers-${m.name}'), value: m),
-                ),
-                Icon(icon, size: 20 * SettingsScope.of(context).accessibility.buttonScale,
-                    color: selected ? KwColors.blue : KwColors.secondaryText),
-                const SizedBox(width: 6),
-                Text(label, style: text.bodyLarge),
-              ],
-            ),
+      return InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () {
+          draft.method = m;
+          onChanged();
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: selected ? KwColors.blueTint : null,
+            border: Border.all(color: selected ? KwColors.blue : KwColors.inputBorder),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              ScaledControl(
+                normalSize: const Size(40, 40),
+                child: Radio<ContactMethod>(key: Key('contact$index-prefers-${m.name}'), value: m),
+              ),
+              Icon(icon, size: buttonIconSize(a), color: selected ? KwColors.blue : KwColors.secondaryText),
+              const SizedBox(width: 6),
+              Text(label, style: text.bodyLarge),
+            ],
           ),
         ),
       );
+    }
+
+    // Width one choice needs on one line: border and padding, radio, icon,
+    // gap and its label.
+    double optionWidth() {
+      var style = text.bodyLarge ?? const TextStyle();
+      if (MediaQuery.boldTextOf(context)) style = style.copyWith(fontWeight: FontWeight.bold);
+      var widest = 0.0;
+      for (final (_, _, label) in methods) {
+        final painter = TextPainter(
+          text: TextSpan(text: label, style: style),
+          textScaler: MediaQuery.textScalerOf(context),
+          textDirection: Directionality.of(context),
+          maxLines: 1,
+        )..layout();
+        if (painter.width > widest) widest = painter.width;
+        painter.dispose();
+      }
+      final radio = a.buttonScale == 1 ? 48.0 : 40 * a.buttonScale;
+      return 2 + 16 + radio + buttonIconSize(a) + 6 + widest + 4;
     }
 
     return Padding(
@@ -616,12 +639,14 @@ class _ContactEditor extends StatelessWidget {
           Row(
             children: [
               CircleAvatar(
-                radius: 20,
+                radius: textSized(context, 20),
                 backgroundColor: KwColors.blueTint,
                 child: name.isEmpty
-                    ? const Icon(Icons.person_outline, color: KwColors.blue)
+                    ? Icon(Icons.person_outline, color: KwColors.blue, size: textSized(context, 24))
+                    // CircleAvatar ignores the text size; size the letter here.
                     : Text(name.characters.first.toUpperCase(),
-                        style: const TextStyle(color: KwColors.blue, fontWeight: FontWeight.w700)),
+                        style: TextStyle(
+                            color: KwColors.blue, fontWeight: FontWeight.w700, fontSize: textSized(context, 17))),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -646,9 +671,9 @@ class _ContactEditor extends StatelessWidget {
           TextField(
             key: Key('contact$index-phone'),
             controller: draft.phone,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Phone number',
-              prefixIcon: Icon(Icons.phone_outlined),
+              prefixIcon: _FieldIcon(Icons.phone_outlined),
             ),
             keyboardType: TextInputType.phone,
           ),
@@ -656,9 +681,9 @@ class _ContactEditor extends StatelessWidget {
           TextField(
             key: Key('contact$index-email'),
             controller: draft.email,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Email',
-              prefixIcon: Icon(Icons.email_outlined),
+              prefixIcon: _FieldIcon(Icons.email_outlined),
             ),
             keyboardType: TextInputType.emailAddress,
           ),
@@ -671,16 +696,38 @@ class _ContactEditor extends StatelessWidget {
               draft.method = m;
               onChanged();
             },
-            child: Row(
-              children: [
-                methodOption(ContactMethod.phone, Icons.phone_outlined, 'Phone'),
-                const SizedBox(width: 12),
-                methodOption(ContactMethod.email, Icons.email_outlined, 'Email'),
-              ],
-            ),
+            // Side by side, or one above the other when big text and buttons
+            // don't fit in a narrow window.
+            child: LayoutBuilder(builder: (context, constraints) {
+              final options = [for (final (m, icon, label) in methods) methodOption(m, icon, label)];
+              if (constraints.maxWidth >= 2 * optionWidth() + 12) {
+                return Row(children: [
+                  Expanded(child: options[0]),
+                  const SizedBox(width: 12),
+                  Expanded(child: options[1]),
+                ]);
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [options[0], const SizedBox(height: 8), options[1]],
+              );
+            }),
           ),
         ],
       ),
     );
   }
+}
+
+/// A text box's icon (phone, email): grows with the text, with room around it.
+class _FieldIcon extends StatelessWidget {
+  const _FieldIcon(this.icon);
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsetsDirectional.only(start: 12, end: 8),
+        child: Icon(icon, size: textSized(context, 22)),
+      );
 }
