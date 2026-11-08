@@ -1,0 +1,5 @@
+/* Extra sections on profile About / Reels / Groups pages; tagged by
+   js/profile-sections.js. */
+[data-kw-hidden="profile-section"] {
+  display: none !important;
+}

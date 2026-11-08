@@ -1,0 +1,18 @@
+/* Tagged by js/profile-tabs.js on every profile: tabs other than About and
+   Photos, the "See recommendations" / "•••" buttons and the
+   "People You May Know" panel. (Reels and Groups tabs are added back on the
+   user's own profile.) */
+[data-kw-hidden="profile-tab"] {
+  display: none !important;
+}
+
+/* The Reels and Groups tabs are copies of the (unselected) Photos tab, so mark
+   the one for the current page the way Facebook marks its selected tab. */
+[data-kw-tab][data-kw-active] {
+  color: var(--accent, #0866ff) !important;
+  box-shadow: inset 0 -3px 0 var(--accent, #0866ff);
+}
+
+[data-kw-tab][data-kw-active] * {
+  color: inherit !important;
+}
