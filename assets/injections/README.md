@@ -26,6 +26,22 @@ Use the same `<area>` name across the three folders for one feature, e.g.
   a `data-kw-page` attribute on `<html>` and the CSS can target that.
 - Prefix any classes/ids you create with `kw-` so they never clash with Facebook's.
 
+## User settings
+
+The accessibility choices from onboarding reach every page (and change live,
+without a reload):
+
+- JS: `kwHab.settings` → `{ textScale, boldText, buttonScale, readAloud, talkToType }`,
+  and `kwHab.onSettings(cb)` to react to changes.
+- CSS: `var(--kw-text-scale)` / `var(--kw-button-scale)` (1 = normal) and the
+  `html[data-kw-bold-text]`, `html[data-kw-read-aloud]`, `html[data-kw-talk-to-type]`
+  attributes (present only when that feature is on).
+
+`css/accessibility.css` already applies text size and bold text to the whole
+page. Button size isn't applied globally: scale the controls your area owns,
+e.g. `min-height: calc(40px * var(--kw-button-scale, 1))`. Support contacts
+are deliberately not available here (Facebook can read the page).
+
 ## Seeing changes
 
 Asset files are bundled at build time. With `flutter run -d macos` running,

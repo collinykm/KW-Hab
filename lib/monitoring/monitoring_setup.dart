@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '../settings/app_settings.dart';
+
 import 'gemini_safety_classifier.dart';
 import 'message_monitor.dart';
 import 'message_monitor_bridge.dart';
@@ -15,7 +17,8 @@ import 'staff_notifier.dart';
 ///
 /// Bundled assets can be read out of the built app, so this is for
 /// development only; a release should call Gemini through a server of ours.
-MessageMonitorBridge? createMessageMonitorBridge() {
+/// Alerts go to the support people in [settings] (entered during onboarding).
+MessageMonitorBridge? createMessageMonitorBridge(AppSettings settings) {
   final apiKey = dotenv.get('GEMINI_API_KEY', fallback: '').trim();
   final model = dotenv.get('GEMINI_MODEL', fallback: '').trim();
   if (apiKey.isEmpty) {
@@ -29,8 +32,7 @@ MessageMonitorBridge? createMessageMonitorBridge() {
       apiKey: apiKey,
       model: model.isEmpty ? GeminiSafetyClassifier.defaultModel : model,
     ),
-    // TODO: replace with SMS/email delivery once onboarding collects the
-    // support worker's contact and preferred method.
-    notifier: ConsoleStaffNotifier(),
+    // TODO: replace with real SMS/email delivery to the same recipients.
+    notifier: ConsoleStaffNotifier(settings),
   ));
 }

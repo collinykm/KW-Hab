@@ -1,0 +1,21 @@
+/* Applies the user's accessibility settings (chosen in onboarding) to the
+   whole page. Values come from runtime.js as attributes/variables on <html>:
+     --kw-text-scale, --kw-button-scale   (1 = normal)
+     [data-kw-bold-text], [data-kw-read-aloud], [data-kw-talk-to-type]
+
+   Area CSS can use the same variables for its own pieces, e.g.
+     .kw-my-button { min-height: calc(40px * var(--kw-button-scale, 1)); }
+   --kw-button-scale is not applied globally here: Facebook's buttons are laid
+   out in px, so each area should scale the controls it owns. */
+
+/* Text size. Facebook sizes text in rem and leaves the root size alone, so
+   scaling the root scales its text (px-sized boxes don't grow, so text wraps
+   more instead). */
+html {
+  font-size: calc(16px * var(--kw-text-scale, 1)) !important;
+}
+
+/* Bold text. */
+html[data-kw-bold-text] body *:not(svg):not(svg *) {
+  font-weight: 700 !important;
+}

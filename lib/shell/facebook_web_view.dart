@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -26,7 +28,7 @@ InAppWebViewSettings _webViewSettings() => InAppWebViewSettings(
 
 /// The web view used for both the main window and `window.open()` popups.
 /// Every instance gets the custom CSS/JS/HTML from [injections].
-class FacebookWebView extends StatelessWidget {
+class FacebookWebView extends StatefulWidget {
   const FacebookWebView({
     super.key,
     required this.injections,
@@ -37,6 +39,7 @@ class FacebookWebView extends StatelessWidget {
     this.onProgress,
     this.onTitle,
     this.onLoadStart,
+    this.onLoadStop,
     this.onMainFrameError,
     this.onClose,
   });
@@ -54,27 +57,54 @@ class FacebookWebView extends StatelessWidget {
   final ValueChanged<double>? onProgress;
   final ValueChanged<String?>? onTitle;
   final VoidCallback? onLoadStart;
+
+  /// A main-frame page finished loading (not called for in-app SPA navigations).
+  final ValueChanged<WebUri?>? onLoadStop;
   final ValueChanged<String>? onMainFrameError;
   final VoidCallback? onClose;
 
   @override
+  State<FacebookWebView> createState() => _FacebookWebViewState();
+}
+
+class _FacebookWebViewState extends State<FacebookWebView> {
+  InAppWebViewController? _controller;
+
+  @override
+  void dispose() {
+    final c = _controller;
+    if (c != null) {
+      for (final bridge in widget.bridges) {
+        bridge.detach(c);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return InAppWebView(
-      windowId: windowId,
-      initialUrlRequest:
-          initialUrl == null ? null : URLRequest(url: WebUri(initialUrl!)),
+      windowId: widget.windowId,
+      initialUrlRequest: widget.initialUrl == null
+          ? null
+          : URLRequest(url: WebUri(widget.initialUrl!)),
       initialSettings: _webViewSettings(),
-      initialUserScripts: injections.userScripts(),
+      initialUserScripts: UnmodifiableListView([
+        for (final bridge in widget.bridges) ...bridge.initialUserScripts(),
+        ...widget.injections.userScripts(),
+      ]),
       onWebViewCreated: (controller) {
-        for (final bridge in bridges) {
+        _controller = controller;
+        for (final bridge in widget.bridges) {
           bridge.attach(controller);
         }
-        onCreated?.call(controller);
+        widget.onCreated?.call(controller);
       },
-      onLoadStart: (_, _) => onLoadStart?.call(),
-      onProgressChanged: (_, p) => onProgress?.call(p / 100),
-      onTitleChanged: (_, t) => onTitle?.call(t),
-      onCloseWindow: (_) => onClose?.call(),
+      onLoadStart: (_, _) => widget.onLoadStart?.call(),
+      onLoadStop: (_, url) => widget.onLoadStop?.call(url),
+      onProgressChanged: (_, p) => widget.onProgress?.call(p / 100),
+      onTitleChanged: (_, t) => widget.onTitle?.call(t),
+      onCloseWindow: (_) => widget.onClose?.call(),
       shouldOverrideUrlLoading: (controller, action) async {
         if (!action.isForMainFrame) return NavigationActionPolicy.ALLOW;
         final external = externalTarget(action.request.url);
@@ -116,7 +146,7 @@ class FacebookWebView extends StatelessWidget {
         // Cancelled navigations (e.g. links we sent to the browser) aren't errors.
         if (error.type == WebResourceErrorType.CANCELLED) return;
         if (error.description.contains('Frame load interrupted')) return;
-        onMainFrameError?.call(error.description);
+        widget.onMainFrameError?.call(error.description);
       },
     );
   }
@@ -152,8 +182,8 @@ class FacebookWebView extends StatelessWidget {
                 ),
                 Expanded(
                   child: FacebookWebView(
-                    injections: injections,
-                    bridges: bridges,
+                    injections: widget.injections,
+                    bridges: widget.bridges,
                     windowId: windowId,
                     onClose: () {
                       if (Navigator.of(dialogContext).canPop()) {

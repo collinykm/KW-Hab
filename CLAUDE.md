@@ -38,6 +38,8 @@ CocoaPods is **not** installed on this machine. Every plugin must support Swift 
 assets/injections/   Facebook UI customizations: css/, js/, html/ (one file per area) + runtime.js
 lib/injections/      InjectionBundle: discovers those assets and turns them into WKUserScripts
 lib/shell/           the web view host: window, navigation/link routing, popups, downloads, native bridge
+lib/settings/        AppSettings: user settings (accessibility, support contacts, onboarding done), saved to settings.json
+lib/screens/         native Flutter screens; onboarding/ = first-run setup + Settings… (⌘,)
 lib/monitoring/      message monitoring: Messenger snapshots -> Gemini -> staff alert (Gemini key in git-ignored `.env`, copy `.env.example`)
 lib/app.dart         root widget; native Flutter screens (e.g. a custom login/onboarding under lib/screens/) route from here
 macos/Runner/        native window + menu bar
@@ -52,6 +54,12 @@ The full conventions are in `assets/injections/README.md`. The key points:
 - Facebook class names are obfuscated and unstable. Select on `role`, `aria-label`, `data-pagelet`, `href`. Prefix created classes/ids with `kw-`.
 - Debug builds set `isInspectable`, so you can right-click the page → Inspect Element. Scripts appear under `kw-hab/…` source URLs.
 
+## Settings (`lib/settings/`)
+
+`AppSettings` (a `ChangeNotifier`, built and loaded in `main.dart`) is the single source of truth for user settings, saved to `settings.json` in Application Support on every change. Reach it from widgets with `SettingsScope.of(context)`, from Dart services by taking it as a constructor argument, and from page JS/CSS through `kwHab.settings` / `--kw-*` (pushed by `PageSettingsBridge`; see `assets/injections/README.md`). Only accessibility settings go to the page; support contacts stay in Dart. Flutter screens get text size/bold/button size from `accessibility_theme.dart`.
+
+Onboarding (`lib/screens/onboarding/`) is shown by `FacebookShell` after a page load when Facebook's `c_user` login cookie is present and `onboardingComplete` is false, and again from the app menu's Settings… (⌘,).
+
 ## Shell (`lib/shell/` + `macos/Runner/`)
 
 - `FacebookWebView` is shared by the main window and `window.open()` popups (popups pass `windowId` and show in a `Dialog`). It applies the injections, user agent, permissions and download handling.
@@ -59,6 +67,6 @@ The full conventions are in `assets/injections/README.md`. The key points:
 - User agent: a Safari `Version/… Safari/…` suffix is appended so Facebook serves the full desktop site.
 - Downloads: the plugin cancels WebKit downloads natively, so `downloads.dart` re-fetches the file with the web view's cookies into `~/Downloads`.
 - Page bridges (`page_bridge.dart`): Dart services that page JS calls via `window.flutter_inappwebview.callHandler`. Built in `main.dart`, attached to every web view. Facebook's scripts can call them too, so treat arguments as untrusted. The message monitor (`kwMessageMonitor`) is one.
-- Native bridge: the `kw_hab/shell` MethodChannel (`native_shell.dart` ↔ `MainFlutterWindow.swift`). Native → Dart sends `menu` commands (reload/back/forward/home/zoom). Dart → native sends `setTitle`.
+- Native bridge: the `kw_hab/shell` MethodChannel (`native_shell.dart` ↔ `MainFlutterWindow.swift`). Native → Dart sends `menu` commands (reload/back/forward/home/zoom/settings). Dart → native sends `setTitle`.
 - Shortcuts are native `NSMenu` key equivalents on purpose: when the WKWebView has focus, Flutter never sees key events. Don't replace the xib menu with Flutter's `PlatformMenuBar`, because that drops the Edit menu and breaks copy/paste in the web view.
 - Entitlements (`DebugProfile`/`Release`, keep in sync) need `network.client`, camera, audio-input, user-selected files and downloads access. Camera/mic usage strings are in `Info.plist`.

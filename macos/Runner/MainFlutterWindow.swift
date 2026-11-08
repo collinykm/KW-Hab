@@ -39,8 +39,8 @@ class MainFlutterWindow: NSWindow {
     super.awakeFromNib()
   }
 
-  /// Adds browser-style commands (reload, back/forward, zoom) to the native
-  /// menu bar so the standard macOS shortcuts work while the web view has focus.
+  /// Adds browser-style commands (reload, back/forward, zoom) and Settings… to
+  /// the native menu bar so the standard macOS shortcuts work while the web view has focus.
   private func installBrowserMenuItems() {
     guard let mainMenu = NSApp.mainMenu else { return }
 
@@ -70,6 +70,16 @@ class MainFlutterWindow: NSWindow {
       mainMenu.insertItem(historyItem, at: viewIndex + 1)
     } else {
       mainMenu.addItem(historyItem)
+    }
+
+    // The template's "Preferences…" (⌘,) item in the app menu opens the
+    // onboarding/settings screen.
+    if let appMenu = mainMenu.items.first?.submenu,
+       let prefs = appMenu.items.first(where: { $0.keyEquivalent == "," }) {
+      prefs.title = "Settings…"
+      prefs.action = #selector(ShellMenuTarget.perform(_:))
+      prefs.representedObject = "settings"
+      prefs.target = menuTarget
     }
   }
 
