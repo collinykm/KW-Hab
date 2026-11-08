@@ -1,0 +1,23 @@
+<!-- The "sensitive info" warning shown by js/sensitive-info.js before a
+     message, comment or post that looks like it holds a card number, SIN,
+     password, etc. is sent. -->
+<div class="kw-sensitive" hidden>
+  <div class="kw-sensitive__box" role="alertdialog" aria-modal="true"
+       aria-labelledby="kw-sensitive-title" aria-describedby="kw-sensitive-text">
+    <svg class="kw-sensitive__icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true">
+      <path d="M12 2.5 1.5 21h21L12 2.5z" fill="#f7b928" stroke="#c98a00" stroke-width="1.2" stroke-linejoin="round"></path>
+      <path d="M12 9v5.5" stroke="#1c1e21" stroke-width="2.2" stroke-linecap="round"></path>
+      <circle cx="12" cy="17.6" r="1.3" fill="#1c1e21"></circle>
+    </svg>
+    <h2 class="kw-sensitive__title" id="kw-sensitive-title">Check before you send</h2>
+    <div id="kw-sensitive-text">
+      <p class="kw-sensitive__text">It looks like you're entering some sensitive info.</p>
+      <ul class="kw-sensitive__kinds"></ul>
+      <p class="kw-sensitive__text">Do you want to proceed?</p>
+    </div>
+    <div class="kw-sensitive__buttons">
+      <button type="button" class="kw-sensitive__button kw-sensitive__button--no" data-kw-tap="big">No, go back</button>
+      <button type="button" class="kw-sensitive__button kw-sensitive__button--yes" data-kw-tap="big">Yes, proceed</button>
+    </div>
+  </div>
+</div>
