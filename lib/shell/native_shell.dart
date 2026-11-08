@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 /// Bridge to `macos/Runner/MainFlutterWindow.swift`.
 ///
 /// Native -> Dart: `menu` with a command string (reload, back, forward, home,
-/// zoomIn, zoomOut, zoomReset).
+/// zoomIn, zoomOut, zoomReset, settings).
 /// Dart -> native: `setTitle` with the window title.
 class NativeShell {
   NativeShell._();

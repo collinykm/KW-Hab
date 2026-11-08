@@ -94,3 +94,17 @@
 html[data-kw-reels-saving] [role="menu"][aria-label="Video options"] {
   opacity: 0 !important;
 }
+
+/* Button size above 100% (css/tap-targets.css): the action column grows
+   wider and would run into Facebook's previous/next reel arrows, which sit
+   beside it. Move the arrows to the top of the video, side by side, left of
+   the (also bigger) "Resize" button in the top-right corner. */
+html[data-kw-big-taps] div:has(> div > [role="button"][aria-label="Previous Card"]) {
+  top: 16px !important;
+  right: calc(24px + 24px * var(--kw-button-scale, 1)) !important;
+  bottom: auto !important;
+  transform: none !important;
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 8px;
+}

@@ -2,16 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../injections/injection_bundle.dart';
+import '../screens/onboarding/onboarding_screen.dart';
+import '../settings/app_settings.dart';
+import '../settings/open_settings_bridge.dart';
 import 'facebook_web_view.dart';
+import 'login_state.dart';
 import 'native_shell.dart';
 import 'page_bridge.dart';
 import 'url_routing.dart';
 
 /// The main window: the Facebook web view plus a loading bar and offline screen.
+///
+/// Also shows [OnboardingScreen] after the first Facebook login (until it has
+/// been finished once), and again from the Settings… menu item (⌘,) or the
+/// Settings item in Facebook's profile menu ([OpenSettingsBridge]).
 class FacebookShell extends StatefulWidget {
-  const FacebookShell({super.key, required this.injections, this.bridges = const []});
+  const FacebookShell({
+    super.key,
+    required this.injections,
+    required this.settings,
+    this.bridges = const [],
+  });
 
   final InjectionBundle injections;
+  final AppSettings settings;
   final List<PageBridge> bridges;
 
   @override
@@ -23,16 +37,25 @@ class _FacebookShellState extends State<FacebookShell> {
   double _progress = 0;
   double _zoom = 1.0;
   String? _loadError;
+  bool _onboardingOpen = false;
 
   @override
   void initState() {
     super.initState();
     NativeShell.onMenuCommand(_onMenuCommand);
+    for (final b in widget.bridges.whereType<OpenSettingsBridge>()) {
+      b.onOpen = _openSettings;
+    }
   }
+
+  void _openSettings() => _showOnboarding(firstRun: !widget.settings.onboardingComplete);
 
   @override
   void dispose() {
     NativeShell.onMenuCommand(null);
+    for (final b in widget.bridges.whereType<OpenSettingsBridge>()) {
+      if (b.onOpen == _openSettings) b.onOpen = null;
+    }
     super.dispose();
   }
 
@@ -55,6 +78,29 @@ class _FacebookShellState extends State<FacebookShell> {
         await _setZoom(_zoom - 0.1);
       case 'zoomReset':
         await _setZoom(1.0);
+      case 'settings':
+        _openSettings();
+    }
+  }
+
+  /// After each page load: if someone is logged in to Facebook and onboarding
+  /// was never finished, show it. Covers logging in, finishing sign-up, and
+  /// launching while already logged in.
+  Future<void> _checkOnboarding() async {
+    if (widget.settings.onboardingComplete || _onboardingOpen) return;
+    final c = _controller;
+    if (c == null || !await isLoggedIn(c)) return;
+    if (!mounted || widget.settings.onboardingComplete) return;
+    await _showOnboarding(firstRun: true);
+  }
+
+  Future<void> _showOnboarding({required bool firstRun}) async {
+    if (_onboardingOpen) return;
+    _onboardingOpen = true;
+    try {
+      await OnboardingScreen.show(context, firstRun: firstRun);
+    } finally {
+      _onboardingOpen = false;
     }
   }
 
@@ -82,6 +128,7 @@ class _FacebookShellState extends State<FacebookShell> {
               onLoadStart: () {
                 if (_loadError != null) setState(() => _loadError = null);
               },
+              onLoadStop: (_) => _checkOnboarding(),
               onMainFrameError: (message) => setState(() => _loadError = message),
             ),
           ),

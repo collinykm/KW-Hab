@@ -9,10 +9,80 @@
 //   kwHab.onElement(selector, cb)  -> cb(el) once for each element matching
 //                                     selector, now and whenever one appears
 //   kwHab.log(area, ...args)       -> console.log tagged with the area name
+//   kwHab.settings                 -> the user's accessibility settings (a copy):
+//                                     { textScale, boldText, buttonScale,
+//                                       readAloud, talkToType }
+//   kwHab.onSettings(cb)           -> cb(settings) now and whenever they change
+//                                     (settings change live, without a reload)
+//
+// The same settings are also on <html> for CSS:
+//   --kw-text-scale, --kw-button-scale   numbers, e.g. calc(40px * var(--kw-button-scale))
+//   [data-kw-bold-text] [data-kw-read-aloud] [data-kw-talk-to-type]
+//                                        present only when that feature is on
 (function () {
   if (window.kwHab) return;
 
   var htmlTemplates = __KW_HAB_HTML__;
+
+  // Settings arrive from Dart (lib/settings/page_settings_bridge.dart), which
+  // sets window.__kwHabSettings and calls _applySettings on changes.
+  var settings = {};
+  var settingsCallbacks = [];
+  var SETTING_ATTRS = {
+    boldText: 'data-kw-bold-text',
+    readAloud: 'data-kw-read-aloud',
+    talkToType: 'data-kw-talk-to-type',
+  };
+  var SETTING_VARS = { textScale: '--kw-text-scale', buttonScale: '--kw-button-scale' };
+  function copySettings() {
+    var copy = {};
+    Object.keys(settings).forEach(function (k) { copy[k] = settings[k]; });
+    return copy;
+  }
+  // Idempotent: only touches <html> when a value differs, so the observer
+  // below (which restores them if Facebook rewrites <html>) can't loop.
+  function applySettingsToRoot() {
+    var root = document.documentElement;
+    if (!root) return;
+    Object.keys(SETTING_ATTRS).forEach(function (key) {
+      var attr = SETTING_ATTRS[key];
+      if (settings[key] === true) {
+        if (!root.hasAttribute(attr)) root.setAttribute(attr, '');
+      } else if (root.hasAttribute(attr)) {
+        root.removeAttribute(attr);
+      }
+    });
+    Object.keys(SETTING_VARS).forEach(function (key) {
+      var value = String(typeof settings[key] === 'number' ? settings[key] : 1);
+      if (root.style.getPropertyValue(SETTING_VARS[key]) !== value) {
+        root.style.setProperty(SETTING_VARS[key], value);
+      }
+    });
+  }
+  function applySettings(next) {
+    settings = next && typeof next === 'object' ? next : {};
+    applySettingsToRoot();
+    settingsCallbacks.forEach(function (cb) {
+      try { cb(copySettings()); } catch (e) { console.error('[kwHab] onSettings', e); }
+    });
+  }
+  function watchRoot() {
+    applySettingsToRoot();
+    new MutationObserver(applySettingsToRoot).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['style'].concat(Object.keys(SETTING_ATTRS).map(function (k) { return SETTING_ATTRS[k]; })),
+    });
+  }
+  settings = window.__kwHabSettings || {};
+  if (document.documentElement) {
+    watchRoot();
+  } else {
+    new MutationObserver(function (_, observer) {
+      if (!document.documentElement) return;
+      observer.disconnect();
+      watchRoot();
+    }).observe(document, { childList: true });
+  }
 
   var navCallbacks = [];
   var lastHref = null;
@@ -88,6 +158,12 @@
       scan(watcher, document);
       ensureObserver();
     },
+    get settings() { return copySettings(); },
+    onSettings: function (cb) {
+      settingsCallbacks.push(cb);
+      try { cb(copySettings()); } catch (e) { console.error('[kwHab] onSettings', e); }
+    },
+    _applySettings: applySettings,
     log: function (area) {
       var args = Array.prototype.slice.call(arguments, 1);
       console.log.apply(console, ['[kwHab:' + area + ']'].concat(args));
