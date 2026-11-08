@@ -8,14 +8,15 @@
 // Every tab, and the profile button, gets a text label under its icon.
 //
 // Profile menu: keeps the profile name link (with a "View my profile" hint),
-// a "Settings" item that opens KW Hab's own settings (not Facebook's), and
-// Log out. Everything else is hidden.
+// a "Settings" item that opens KW Hab's own settings screen (the native
+// onboarding/settings screen, via the kwOpenSettings bridge; not Facebook's
+// settings), and Log out. Everything else is hidden.
 
 var MESSAGES_PATH = '/messages/';
 // The user's saved posts (the left column that linked there is hidden).
 var SAVED_PATH = '/saved/';
-// TODO: replace with KW Hab's own settings screen once it exists.
-var SETTINGS_URL = '#kw-settings';
+// Dart handler that shows the settings screen (lib/settings/open_settings_bridge.dart).
+var SETTINGS_HANDLER = 'kwOpenSettings';
 
 var MAIN_NAV = 'div[role="navigation"][aria-label="Facebook"]';
 var PROFILE_BUTTON = 'div[role="navigation"][aria-label="Account Controls and Settings"] [role="button"][aria-label="Account, your profile"]';
@@ -157,7 +158,19 @@ kwHab.onElement(PROFILE_BUTTON, function (button) {
 // ---- Profile menu ---------------------------------------------------------
 
 function openSettings() {
-  location.href = SETTINGS_URL;
+  // Close Facebook's profile menu (its button toggles it) so it isn't still
+  // open when the settings screen closes.
+  var profileButton = document.querySelector(PROFILE_BUTTON);
+  if (profileButton && document.querySelector(PROFILE_MENU)) profileButton.click();
+
+  var bridge = window.flutter_inappwebview;
+  if (!bridge || !bridge.callHandler) {
+    kwHab.log('top-bar', 'settings bridge unavailable');
+    return;
+  }
+  bridge.callHandler(SETTINGS_HANDLER).catch(function (e) {
+    kwHab.log('top-bar', 'could not open settings', e);
+  });
 }
 
 function makeSettingsItem(logOut) {

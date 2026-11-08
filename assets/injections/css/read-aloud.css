@@ -85,3 +85,9 @@
   padding: 4px 12px;
   font-size: 14px;
 }
+
+/* Only shown while the user has "Read text aloud" on in Settings (runtime.js
+   sets data-kw-read-aloud on <html>). Toggling it takes effect live. */
+html:not([data-kw-read-aloud]) :is(.kw-read-aloud, .kw-read-aloud-cell, .kw-read-aloud-row) {
+  display: none;
+}

@@ -39,8 +39,8 @@ class MainFlutterWindow: NSWindow {
     super.awakeFromNib()
   }
 
-  /// Adds browser-style commands (reload, back/forward, zoom) to the native
-  /// menu bar so the standard macOS shortcuts work while the web view has focus.
+  /// Adds browser-style commands (reload, back/forward, zoom) and Settings… to
+  /// the native menu bar so the standard macOS shortcuts work while the web view has focus.
   private func installBrowserMenuItems() {
     guard let mainMenu = NSApp.mainMenu else { return }
 
@@ -71,6 +71,20 @@ class MainFlutterWindow: NSWindow {
     } else {
       mainMenu.addItem(historyItem)
     }
+
+    // Settings… (⌘,) in the app menu opens the onboarding/settings screen.
+    // It replaces the template's "Preferences…" item rather than re-wiring
+    // it: changing that nib item's action at runtime made AppKit send a
+    // garbage selector on ⌘, and crash the app.
+    if let appMenu = mainMenu.items.first?.submenu {
+      let settings = menuItem("Settings…", "settings", key: ",")
+      if let index = appMenu.items.firstIndex(where: { $0.keyEquivalent == "," }) {
+        appMenu.removeItem(at: index)
+        appMenu.insertItem(settings, at: index)
+      } else {
+        appMenu.insertItem(settings, at: min(2, appMenu.items.count))
+      }
+    }
   }
 
   private func menuItem(
@@ -78,7 +92,7 @@ class MainFlutterWindow: NSWindow {
     modifiers: NSEvent.ModifierFlags = [.command]
   ) -> NSMenuItem {
     let item = NSMenuItem(
-      title: title, action: #selector(ShellMenuTarget.perform(_:)), keyEquivalent: key)
+      title: title, action: #selector(ShellMenuTarget.performMenuCommand(_:)), keyEquivalent: key)
     item.keyEquivalentModifierMask = modifiers
     item.representedObject = command
     item.target = menuTarget
@@ -90,7 +104,9 @@ class MainFlutterWindow: NSWindow {
 class ShellMenuTarget: NSObject {
   weak var channel: FlutterMethodChannel?
 
-  @objc func perform(_ sender: NSMenuItem) {
+  // Not named perform(_:): that is NSObject's performSelector:, and
+  // #selector would pick it, so menu items crashed with a garbage selector.
+  @objc func performMenuCommand(_ sender: NSMenuItem) {
     guard let command = sender.representedObject as? String else { return }
     channel?.invokeMethod("menu", arguments: command)
   }

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
+import '../settings/app_settings.dart';
 import '../shell/page_bridge.dart';
 import '../shell/url_routing.dart';
 import 'eleven_labs_stt.dart';
@@ -19,13 +20,17 @@ import 'eleven_labs_tts.dart';
 ///
 /// The ElevenLabs request happens here on the Dart side, so the page only
 /// ever sees audio, never the API key.
-class ReadAloudBridge implements PageBridge {
-  ReadAloudBridge(this.tts);
+///
+/// Refuses with `disabled` while [isEnabled] is false (the user's "Read text
+/// aloud" setting), so nothing in the page can use it when it is turned off.
+class ReadAloudBridge extends PageBridge {
+  ReadAloudBridge(this.tts, {bool Function()? isEnabled}) : isEnabled = isEnabled ?? _always;
 
   /// Must match the handler name in read-aloud.js.
   static const String handlerName = 'kwReadAloud';
 
   final ElevenLabsTts tts;
+  final bool Function() isEnabled;
 
   @override
   void attach(InAppWebViewController controller) {
@@ -37,6 +42,7 @@ class ReadAloudBridge implements PageBridge {
         if (!data.isMainFrame || !isInAppHost(data.origin.host)) {
           return {'ok': false, 'error': 'not_allowed'};
         }
+        if (!isEnabled()) return {'ok': false, 'error': 'disabled'};
         final text = data.args.isEmpty ? null : data.args.first;
         if (text is! String || text.trim().isEmpty) {
           return {'ok': false, 'error': 'empty'};
@@ -60,14 +66,16 @@ class ReadAloudBridge implements PageBridge {
 /// The key comes from `.env` (git-ignored, see `.env.example`) or, failing
 /// that, from the `ELEVENLABS_API_KEY` environment variable. Optional:
 /// `ELEVENLABS_VOICE_ID`, `ELEVENLABS_MODEL_ID`.
-ReadAloudBridge createReadAloudBridge() {
+///
+/// Only works while the user has "Read text aloud" on in [appSettings].
+ReadAloudBridge createReadAloudBridge(AppSettings appSettings) {
   final settings = _elevenLabsSettings(
       const ['ELEVENLABS_API_KEY', 'ELEVENLABS_VOICE_ID', 'ELEVENLABS_MODEL_ID']);
   final tts = ElevenLabsTts.fromEnvironment(settings);
   debugPrint(tts.isConfigured
       ? '[kw-hab:read-aloud] on, voice ${tts.voiceId}, model ${tts.modelId}'
       : '[kw-hab:read-aloud] off: no ELEVENLABS_API_KEY in .env or the environment');
-  return ReadAloudBridge(tts);
+  return ReadAloudBridge(tts, isEnabled: () => appSettings.accessibility.readAloud);
 }
 
 /// Lets `assets/injections/js/speech-to-text.js` turn a recording into text:
@@ -79,13 +87,17 @@ ReadAloudBridge createReadAloudBridge() {
 ///
 /// Like read aloud, the ElevenLabs request happens here, so the page never
 /// sees the API key.
-class SpeechToTextBridge implements PageBridge {
-  SpeechToTextBridge(this.stt);
+///
+/// Refuses with `disabled` while [isEnabled] is false (the user's "Talk to
+/// type" setting).
+class SpeechToTextBridge extends PageBridge {
+  SpeechToTextBridge(this.stt, {bool Function()? isEnabled}) : isEnabled = isEnabled ?? _always;
 
   /// Must match `HANDLER` in speech-to-text.js.
   static const String handlerName = 'kwSpeechToText';
 
   final ElevenLabsStt stt;
+  final bool Function() isEnabled;
 
   @override
   void attach(InAppWebViewController controller) {
@@ -97,6 +109,7 @@ class SpeechToTextBridge implements PageBridge {
         if (!data.isMainFrame || !isInAppHost(data.origin.host)) {
           return {'ok': false, 'error': 'not_allowed'};
         }
+        if (!isEnabled()) return {'ok': false, 'error': 'disabled'};
         if (!stt.isConfigured) return {'ok': false, 'error': 'not_configured'};
         final args = data.args;
         if (args.length < 2 || args[0] is! String || args[1] is! String) {
@@ -127,7 +140,9 @@ class SpeechToTextBridge implements PageBridge {
 /// Always returns a bridge, so the page can say "Speech to text isn't set up
 /// yet" when there is no key. Uses `ELEVENLABS_API_KEY` like read aloud;
 /// optional `ELEVENLABS_STT_MODEL_ID`.
-SpeechToTextBridge createSpeechToTextBridge() {
+///
+/// Only works while the user has "Talk to type" on in [appSettings].
+SpeechToTextBridge createSpeechToTextBridge(AppSettings appSettings) {
   final settings =
       _elevenLabsSettings(const ['ELEVENLABS_API_KEY', 'ELEVENLABS_STT_MODEL_ID']);
   final stt = ElevenLabsStt(
@@ -137,7 +152,7 @@ SpeechToTextBridge createSpeechToTextBridge() {
   debugPrint(stt.isConfigured
       ? '[kw-hab:speech-to-text] on, model ${stt.modelId}'
       : '[kw-hab:speech-to-text] off: no ELEVENLABS_API_KEY in .env or the environment');
-  return SpeechToTextBridge(stt);
+  return SpeechToTextBridge(stt, isEnabled: () => appSettings.accessibility.talkToType);
 }
 
 /// Non-empty values for [names], from `.env` (git-ignored) or, failing that,
@@ -151,3 +166,5 @@ Map<String, String> _elevenLabsSettings(List<String> names) {
   }
   return settings;
 }
+
+bool _always() => true;

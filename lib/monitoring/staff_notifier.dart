@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../settings/app_settings.dart';
+import '../settings/support_contact.dart';
 import 'conversation.dart';
 import 'safety_classifier.dart';
 
@@ -35,19 +37,39 @@ class StaffAlert {
   }
 }
 
-/// Delivers a [StaffAlert] to the user's support worker.
+/// One delivery of an alert: a support person and the way to reach them.
+typedef AlertRecipient = ({SupportContact contact, ContactMethod method, String address});
+
+/// Who an alert goes to: every reachable support person, once each, by their
+/// preferred method (or whatever details they gave, if that one is blank).
+List<AlertRecipient> alertRecipients(Iterable<SupportContact> contacts) => [
+      for (final c in contacts)
+        if (c.contactMethod case final m?) (contact: c, method: m, address: c.addressFor(m)),
+    ];
+
+/// Delivers a [StaffAlert] to the user's support people.
 ///
-/// The real delivery (SMS or email, to a contact the support worker enters
-/// during onboarding) doesn't exist yet. Implement this interface for it and
-/// swap it in where the monitor is built (`lib/monitoring/monitoring_setup.dart`).
+/// The real delivery (SMS or email, to the support people entered during
+/// onboarding; see [alertRecipients]) doesn't exist yet. Implement this
+/// interface for it and swap it in where the monitor is built
+/// (`lib/monitoring/monitoring_setup.dart`).
 abstract class StaffNotifier {
   Future<void> notify(StaffAlert alert);
 }
 
-/// Placeholder: prints the alert to the console (`flutter run` output).
+/// Placeholder: prints the alert, and who it would go to, to the console
+/// (`flutter run` output).
 class ConsoleStaffNotifier implements StaffNotifier {
+  ConsoleStaffNotifier([this.settings]);
+
+  final AppSettings? settings;
+
   @override
   Future<void> notify(StaffAlert alert) async {
-    debugPrint('[kw-hab:message-monitor] STAFF ALERT\n${alert.summary}');
+    final recipients = alertRecipients(settings?.supportContacts ?? const []);
+    final to = recipients.isEmpty
+        ? '(no support people set up in onboarding)'
+        : recipients.map((r) => '${r.contact.name} by ${r.method.name} (${r.address})').join(', ');
+    debugPrint('[kw-hab:message-monitor] STAFF ALERT to $to\n${alert.summary}');
   }
 }

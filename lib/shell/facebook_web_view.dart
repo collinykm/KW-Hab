@@ -1,8 +1,11 @@
+import 'dart:collection';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../injections/injection_bundle.dart';
+import '../settings/settings_scope.dart';
 import 'downloads.dart';
 import 'page_bridge.dart';
 import 'url_routing.dart';
@@ -27,7 +30,7 @@ InAppWebViewSettings _webViewSettings() => InAppWebViewSettings(
 
 /// The web view used for both the main window and `window.open()` popups.
 /// Every instance gets the custom CSS/JS/HTML from [injections].
-class FacebookWebView extends StatelessWidget {
+class FacebookWebView extends StatefulWidget {
   const FacebookWebView({
     super.key,
     required this.injections,
@@ -38,6 +41,7 @@ class FacebookWebView extends StatelessWidget {
     this.onProgress,
     this.onTitle,
     this.onLoadStart,
+    this.onLoadStop,
     this.onMainFrameError,
     this.onClose,
   });
@@ -55,29 +59,58 @@ class FacebookWebView extends StatelessWidget {
   final ValueChanged<double>? onProgress;
   final ValueChanged<String?>? onTitle;
   final VoidCallback? onLoadStart;
+
+  /// A main-frame page finished loading (not called for in-app SPA navigations).
+  final ValueChanged<WebUri?>? onLoadStop;
   final ValueChanged<String>? onMainFrameError;
   final VoidCallback? onClose;
 
   @override
+  State<FacebookWebView> createState() => _FacebookWebViewState();
+}
+
+class _FacebookWebViewState extends State<FacebookWebView> {
+  InAppWebViewController? _controller;
+
+  @override
+  void dispose() {
+    final c = _controller;
+    if (c != null) {
+      for (final bridge in widget.bridges) {
+        bridge.detach(c);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return InAppWebView(
-      windowId: windowId,
-      initialUrlRequest:
-          initialUrl == null ? null : URLRequest(url: WebUri(initialUrl!)),
+      windowId: widget.windowId,
+      initialUrlRequest: widget.initialUrl == null
+          ? null
+          : URLRequest(url: WebUri(widget.initialUrl!)),
       initialSettings: _webViewSettings(),
-      initialUserScripts: injections.userScripts(),
+      initialUserScripts: UnmodifiableListView([
+        for (final bridge in widget.bridges) ...bridge.initialUserScripts(),
+        ...widget.injections.userScripts(),
+      ]),
       onWebViewCreated: (controller) {
-        for (final bridge in bridges) {
+        _controller = controller;
+        for (final bridge in widget.bridges) {
           bridge.attach(controller);
         }
         WindowsMessengerWorker.watch(controller);
-        onCreated?.call(controller);
+        widget.onCreated?.call(controller);
       },
-      onLoadStart: (_, _) => onLoadStart?.call(),
-      onLoadStop: (controller, _) => WindowsMessengerWorker.resume(controller),
-      onProgressChanged: (_, p) => onProgress?.call(p / 100),
-      onTitleChanged: (_, t) => onTitle?.call(t),
-      onCloseWindow: (_) => onClose?.call(),
+      onLoadStart: (_, _) => widget.onLoadStart?.call(),
+      onLoadStop: (controller, url) {
+        WindowsMessengerWorker.resume(controller);
+        widget.onLoadStop?.call(url);
+      },
+      onProgressChanged: (_, p) => widget.onProgress?.call(p / 100),
+      onTitleChanged: (_, t) => widget.onTitle?.call(t),
+      onCloseWindow: (_) => widget.onClose?.call(),
       shouldOverrideUrlLoading: (controller, action) async {
         if (!action.isForMainFrame) return NavigationActionPolicy.ALLOW;
         final external = externalTarget(action.request.url);
@@ -119,7 +152,7 @@ class FacebookWebView extends StatelessWidget {
         // Cancelled navigations (e.g. links we sent to the browser) aren't errors.
         if (error.type == WebResourceErrorType.CANCELLED) return;
         if (error.description.contains('Frame load interrupted')) return;
-        onMainFrameError?.call(error.description);
+        widget.onMainFrameError?.call(error.description);
       },
     );
   }
@@ -142,21 +175,21 @@ class FacebookWebView extends StatelessWidget {
             child: Column(
               children: [
                 Container(
-                  height: 40,
+                  height: 40 * SettingsScope.of(dialogContext).accessibility.buttonScale,
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   alignment: Alignment.centerRight,
                   color: const Color(0xFFF0F2F5),
                   child: IconButton(
                     tooltip: 'Close',
-                    iconSize: 18,
+                    iconSize: 18 * SettingsScope.of(dialogContext).accessibility.buttonScale,
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.of(dialogContext).pop(),
                   ),
                 ),
                 Expanded(
                   child: FacebookWebView(
-                    injections: injections,
-                    bridges: bridges,
+                    injections: widget.injections,
+                    bridges: widget.bridges,
                     windowId: windowId,
                     onClose: () {
                       if (Navigator.of(dialogContext).canPop()) {

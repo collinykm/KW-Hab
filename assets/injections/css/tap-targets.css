@@ -1,0 +1,65 @@
+/* Button size: bigger click targets everywhere. js/tap-targets.js tags each
+   clickable element with data-kw-tap (compact / row / inline / big) and sets
+   html[data-kw-big-taps] while the Button size setting is above 100%.
+   --kw-button-scale comes from runtime.js (1 = normal, up to 2). */
+
+/* The top bar grows so its bigger buttons fit. Facebook positions the page
+   below it with this variable. */
+html[data-kw-big-taps] {
+  --header-height: calc(56px * var(--kw-button-scale, 1)) !important;
+}
+/* The Facebook logo floats over the search box's left end, which keeps a
+   36px placeholder free for it; widen the placeholder as the logo grows. */
+html[data-kw-big-taps] div[role="banner"] div:has(> label input[role="combobox"]) > div:first-child {
+  min-width: calc(36px * var(--kw-button-scale, 1)) !important;
+}
+
+/* Small controls (icon buttons, avatars, close buttons): scale the whole
+   thing, icon, circle and all. */
+html[data-kw-big-taps] [data-kw-tap="compact"] {
+  zoom: var(--kw-button-scale, 1) !important;
+}
+
+/* Wider controls (tabs, menu items, text buttons, text boxes): taller, with
+   their icons scaled. Text size is left to the Text size setting. */
+html[data-kw-big-taps] [data-kw-tap="row"] {
+  min-height: calc(var(--kw-tap-h, 0px) * var(--kw-button-scale, 1)) !important;
+}
+html[data-kw-big-taps] [data-kw-tap-icon] {
+  zoom: var(--kw-button-scale, 1) !important;
+}
+/* Short content in a wide control (e.g. a full-width "View 3 replies" bar):
+   scale the content, icon and words, inside the bar. */
+html[data-kw-big-taps] [data-kw-tap-content] {
+  zoom: var(--kw-button-scale, 1) !important;
+}
+/* Already scaled with the control or content around it; don't scale twice. */
+html[data-kw-big-taps] [data-kw-tap="compact"] [data-kw-tap-icon],
+html[data-kw-big-taps] [data-kw-tap-content] [data-kw-tap-icon],
+html[data-kw-big-taps] [data-kw-tap-content] [data-kw-tap="compact"],
+html[data-kw-big-taps] [data-kw-tap-content] [data-kw-tap-content] {
+  zoom: 1 !important;
+}
+
+/* Links in running text: an invisible hit area around the words. Padding on
+   an inline box doesn't move the text, and the negative margin cancels the
+   sideways shift. */
+html[data-kw-big-taps] [data-kw-tap="inline"] {
+  --kw-tap-pad-y: calc(0.6em * (var(--kw-button-scale, 1) - 1));
+  --kw-tap-pad-x: calc(0.3em * (var(--kw-button-scale, 1) - 1));
+  padding: var(--kw-tap-pad-y) var(--kw-tap-pad-x) !important;
+  margin: 0 calc(-1 * var(--kw-tap-pad-x)) !important;
+}
+
+/* Wrappers with a fixed size that a grown control spilled out of (measured by
+   js/tap-targets.js). min-width/min-height win over a fixed width/height. */
+html[data-kw-big-taps] [data-kw-tap-fit] {
+  min-width: var(--kw-fit-w, auto) !important;
+  min-height: var(--kw-fit-h, auto) !important;
+}
+
+/* A row whose grown controls were pushed out of view: let it wrap onto a
+   second line (measured by js/tap-targets.js). */
+html[data-kw-big-taps] [data-kw-tap-wrap] {
+  flex-wrap: wrap !important;
+}

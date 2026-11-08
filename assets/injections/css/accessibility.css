@@ -1,0 +1,19 @@
+/* Applies the user's accessibility settings (chosen in onboarding) to the
+   whole page. Values come from runtime.js as attributes/variables on <html>:
+     --kw-text-scale, --kw-button-scale   (1 = normal)
+     [data-kw-bold-text], [data-kw-read-aloud], [data-kw-talk-to-type]
+
+   Button size is applied to every clickable element by css/tap-targets.css
+   and js/tap-targets.js. */
+
+/* Text size. Facebook sizes text in rem and leaves the root size alone, so
+   scaling the root scales its text (px-sized boxes don't grow, so text wraps
+   more instead). */
+html {
+  font-size: calc(16px * var(--kw-text-scale, 1)) !important;
+}
+
+/* Bold text. */
+html[data-kw-bold-text] body *:not(svg):not(svg *) {
+  font-weight: 700 !important;
+}
