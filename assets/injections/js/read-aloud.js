@@ -8,6 +8,10 @@
 // photo together with the post's words (lib/cloudinary/, `kwSummarizePost`),
 // so details that are only in the picture (a flyer's date and place, what is
 // going on) are read out too. The summary is also shown under the button.
+//
+// Only while the user has "Read text aloud" on in Settings: the buttons are
+// always added, but css/read-aloud.css hides them when it's off, so turning
+// it on or off takes effect without a reload.
 
 var SUMMARY_HANDLER = 'kwSummarizePost';
 var LABELS = {
@@ -18,6 +22,7 @@ var LABELS = {
 };
 var ERRORS = {
   not_configured: "Read aloud isn't set up yet",
+  disabled: 'Read aloud is turned off in Settings',
   unauthorized: "Read aloud isn't set up yet",
   empty: 'Nothing to read here',
 };
@@ -56,8 +61,13 @@ function audioUrl(base64, mimeType) {
   return URL.createObjectURL(new Blob([bytes], { type: mimeType }));
 }
 
+function enabled() {
+  return kwHab.settings.readAloud === true;
+}
+
 // [getText] returns the text to read, or a promise of it.
 function read(button, getText) {
+  if (!enabled()) return;
   var wasThisButton = current && current.button === button;
   stop();
   if (wasThisButton) return; // the button said "Stop reading"
@@ -290,3 +300,7 @@ kwHab.onElement(MESSAGE + ' ' + ACTIONS, function (toolbar) {
 
 // Leaving the page (or switching chats) stops any reading.
 kwHab.onNavigate(stop);
+// So does turning read aloud off in Settings.
+kwHab.onSettings(function (settings) {
+  if (settings.readAloud !== true) stop();
+});

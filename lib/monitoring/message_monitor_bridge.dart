@@ -9,7 +9,7 @@ import 'conversation.dart';
 import 'message_monitor.dart';
 
 /// Receives conversation snapshots from `assets/injections/js/message-monitor.js`.
-class MessageMonitorBridge implements PageBridge {
+class MessageMonitorBridge extends PageBridge {
   MessageMonitorBridge(this.monitor);
 
   /// Must match `HANDLER` in message-monitor.js.

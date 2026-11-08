@@ -101,3 +101,9 @@
 .kw-speak--floating[hidden] {
   display: none;
 }
+
+/* Only shown while the user has "Talk to type" on in Settings (runtime.js
+   sets data-kw-talk-to-type on <html>). Toggling it takes effect live. */
+html:not([data-kw-talk-to-type]) .kw-speak {
+  display: none;
+}

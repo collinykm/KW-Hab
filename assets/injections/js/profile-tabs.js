@@ -4,8 +4,10 @@
 // Photos and Reels. Everything else, including the More menu (Check-ins,
 // Music, Sports, Movies, Likes, Events, Reviews given, …), is hidden.
 //
-// The user's own profile opens on About and keeps About, Photos and Reels,
-// plus a Groups tab added here.
+// The user's own profile keeps All (renamed "Posts": their intro, the post
+// composer and their posts, where they can edit or delete a post), About,
+// Photos and Reels, plus a Groups tab added here. Friends isn't a tab there:
+// the top bar's Friends tab opens it (js/top-bar.js).
 //
 // On every profile the "See recommendations" chevron is hidden, along with
 // the "People You May Know" panel it opens, and so is the "•••" button (on
@@ -26,14 +28,14 @@ function profileSection(href) {
 
 // Which Facebook tab this is. Facebook drops the tabs' href after it
 // hydrates, so fall back to the label.
-var SECTION_BY_LABEL = { All: 'all', About: 'about', Friends: 'friends', Photos: 'photos', Reels: 'reels_tab' };
+var SECTION_BY_LABEL = { All: 'all', Posts: 'all', About: 'about', Friends: 'friends', Photos: 'photos', Reels: 'reels_tab' };
 function tabSection(tab) {
   var href = tab.getAttribute('href');
   return href ? profileSection(href) : SECTION_BY_LABEL[tab.textContent.trim()] || null;
 }
 
 var KEPT_SECTIONS = {
-  own: { about: true, photos: true, reels_tab: true },
+  own: { all: true, about: true, photos: true, reels_tab: true },
   other: { all: true, about: true, friends: true, photos: true, reels_tab: true },
 };
 
@@ -48,13 +50,16 @@ function isOwnProfile() {
   return !!document.querySelector('[role="main"] [aria-label="Edit profile"]');
 }
 
-// The same profile's URL for another section, built from the About tab's link.
+// The same profile's URL for another section, built from the About tab's
+// link, or (once Facebook has dropped that) from the page's own address.
 function sectionUrl(aboutHref, section) {
-  var url = new URL(aboutHref, location.origin);
-  if (!url.searchParams.get('sk')) {
-    // /<username>/about -> /<username>
-    url.pathname = url.pathname.replace(/\/about\/?$/, '');
+  var url = new URL(aboutHref || location.href, location.origin);
+  if (url.pathname !== '/profile.php') {
+    // /<username>/about, /<username>/friends, … -> /<username>
+    url.pathname = '/' + url.pathname.split('/').filter(Boolean)[0];
   }
+  url.search = url.pathname === '/profile.php' ? '?id=' + url.searchParams.get('id') : '';
+  url.hash = '';
   url.searchParams.set('sk', section);
   return url.href;
 }
@@ -72,7 +77,7 @@ function setUpTabs(tablist) {
   if (!tablist || !tablist.isConnected) return;
   var own = isOwnProfile();
   var kept = own ? KEPT_SECTIONS.own : KEPT_SECTIONS.other;
-  var found = { about: null, photos: null, reels: null };
+  var found = { all: null, about: null, photos: null, reels: null };
 
   var tabs = tablist.querySelectorAll('[role="tab"]:not([data-kw-tab])');
   for (var i = 0; i < tabs.length; i++) {
@@ -82,6 +87,7 @@ function setUpTabs(tablist) {
       continue;
     }
     var section = tabSection(tab);
+    if (section === 'all') found.all = tab;
     if (section === 'about') found.about = tab;
     if (section === 'photos') found.photos = tab;
     if (section === 'reels_tab') found.reels = tab;
@@ -89,13 +95,11 @@ function setUpTabs(tablist) {
     else hide(tab);
   }
 
-  if (!own || !found.about || !found.about.href || !found.photos) return;
-  addGroupsTab(tablist, found);
-
-  // Own profile: land on About instead of the All (posts) view. replace()
-  // keeps the All view out of history, so Back doesn't bounce the user
-  // straight here again.
-  if (profileSection(location.href) === 'all') location.replace(found.about.href);
+  if (!own) return;
+  // "All" holds just the intro and the user's posts once the other cards are
+  // gone (js/profile-sections.js), so call it what it is.
+  if (found.all) relabel(found.all, 'All', 'Posts');
+  if (found.about && found.photos) addGroupsTab(tablist, found);
 }
 
 // Own profile only: a Groups tab. Facebook only has Groups inside its "More"
@@ -107,7 +111,7 @@ function addGroupsTab(tablist, found) {
   var template = found.photos.getAttribute('aria-selected') === 'true' ? found.about : found.photos;
   var groups = template.cloneNode(true);
   groups.setAttribute('data-kw-tab', 'groups');
-  groups.setAttribute('href', sectionUrl(found.about.href, 'groups'));
+  groups.setAttribute('href', sectionUrl(found.about.getAttribute('href'), 'groups'));
   groups.removeAttribute(HIDDEN);
   relabel(groups, template === found.about ? 'About' : 'Photos', 'Groups');
   var after = found.reels || found.photos;
@@ -168,20 +172,41 @@ kwHab.onElement(
   hide
 );
 
-// The "People You May Know" panel that chevron opens. With the chevron gone it
-// could never be closed, so hide the whole card: climb from its heading to the
-// box holding the suggestion cards, then through wrappers of the same height
-// (the card's frame), stopping before the much taller profile header.
-kwHab.onElement('[role="main"] h2', function (heading) {
-  if (heading.textContent.trim() !== 'People You May Know') return;
-  var main = heading.closest('[role="main"]');
-  var panel = heading;
-  while (panel !== main && !panel.querySelector('[aria-label^="Remove recommendation for"]')) {
-    panel = panel.parentElement;
-  }
-  if (panel === main) return;
-  while (panel.parentElement !== main && panel.parentElement.offsetHeight <= panel.offsetHeight + 10) {
-    panel = panel.parentElement;
-  }
-  hide(panel);
-});
+// The "People You May Know" panel, which the chevron opens and which Facebook
+// also shows on its own above the tabs (e.g. on a profile with few friends).
+// Suggestions stay reachable from the friends grid's "Find Friends" link.
+// Hide the largest box around its heading that holds none of the profile
+// header (name, Edit profile, the tab bar).
+function hidePeopleYouMayKnow() {
+  var tablist = currentTablist();
+  if (!tablist) return; // Only on profiles (the Friends page keeps its list).
+  var main = tablist.closest('[role="main"]');
+  var keepers = main.querySelectorAll('h1, [role="tablist"], [aria-label="Edit profile"], [aria-label="Add to story"]');
+  main.querySelectorAll('h2').forEach(function (heading) {
+    if (!/^People You May Know$/i.test(heading.textContent.trim())) return;
+    var panel = heading;
+    for (;;) {
+      var parent = panel.parentElement;
+      if (!parent || parent === main) break;
+      var holdsKeeper = false;
+      for (var i = 0; i < keepers.length; i++) {
+        if (parent.contains(keepers[i])) { holdsKeeper = true; break; }
+      }
+      if (holdsKeeper) break;
+      panel = parent;
+    }
+    hide(panel);
+  });
+}
+
+// The panel and the tab bar can render in either order.
+var pymkPending = null;
+function hidePeopleYouMayKnowSoon() {
+  if (pymkPending) return;
+  pymkPending = setTimeout(function () {
+    pymkPending = null;
+    hidePeopleYouMayKnow();
+  }, 50);
+}
+kwHab.onElement('[role="main"] h2', hidePeopleYouMayKnowSoon);
+kwHab.onElement('[role="main"] [role="tablist"] [role="tab"]', hidePeopleYouMayKnowSoon);

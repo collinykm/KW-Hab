@@ -22,7 +22,7 @@ import 'cloudinary_client.dart';
 /// the summary includes what's only in the picture (a flyer's date and place,
 /// who is in it, what is going on). The photo is analysed from Facebook's own
 /// URL and is never stored in Cloudinary.
-class PostSummaryBridge implements PageBridge {
+class PostSummaryBridge extends PageBridge {
   PostSummaryBridge(this.cloudinary);
 
   /// Must match `SUMMARY_HANDLER` in read-aloud.js.
@@ -147,7 +147,7 @@ class PostSummaryBridge implements PageBridge {
 ///
 /// Jobs are only ones this bridge started, so the page can't name other
 /// assets in the Cloudinary account.
-class PhotoFixBridge implements PageBridge {
+class PhotoFixBridge extends PageBridge {
   PhotoFixBridge(this.cloudinary, {Random? random}) : _random = random ?? Random.secure();
 
   /// Must match `HANDLER` in photo-fix.js.

@@ -85,35 +85,67 @@ kwHab.onElement('[role="radiogroup"][aria-label="Select audience"] label', funct
 
 // --- Width ------------------------------------------------------------------
 // css/post-dialog.css widens the dialog to a feed post's width, but layers
-// inside it keep Facebook's fixed 500px. Find those (about 500px wide in a
-// clearly wider parent) and mark them to fill their parent. Sub-screens (Tag
-// people, Post audience, …) mount later inside the same dialog, so this
-// re-checks while the dialog is open.
+// inside it keep Facebook's own fixed width (500px, or 375px in some
+// renders). That width is read from the widest box around the close button
+// that is still clearly narrower than the dialog, and every layer of that
+// width in a clearly wider parent is marked to fill its parent. Facebook
+// renders the dialog in steps and sub-screens (Tag people, Post audience, …)
+// mount later inside it, so this re-measures and re-checks while it is open:
+// every frame at first, then every 250ms.
+//
+// The dialog stays invisible until it is wide ([data-kw-post-dialog-ready]),
+// so it never shows squished first. The CSS shows it anyway after 0.6s.
 
 var WIDE = 'data-kw-post-dialog-wide';
+var READY = 'data-kw-post-dialog-ready';
+var CLOSE = '[aria-label="Close composer dialog"]';
+
+// 0 once nothing around the close button is left narrow.
+function layerWidth(dialog) {
+  var close = dialog.querySelector(CLOSE);
+  var full = dialog.clientWidth;
+  var width = 0;
+  for (var el = close && close.parentElement; el && el !== dialog; el = el.parentElement) {
+    var w = el.offsetWidth;
+    if (w > width && w > full / 2 && full - w > 40) width = w;
+  }
+  return width;
+}
 
 function widen(dialog) {
+  // Sub-screens may have no close button; they use the last width found.
+  var target = layerWidth(dialog) || dialog.__kwLayerWidth;
+  if (!target) return;
+  dialog.__kwLayerWidth = target;
   for (var pass = 0; pass < 4; pass++) {
     var changed = false;
     var divs = dialog.querySelectorAll('div:not([' + WIDE + '])');
     for (var i = 0; i < divs.length; i++) {
       var el = divs[i];
       var w = el.offsetWidth;
-      if (w < 480 || w > 520 || !el.parentElement) continue;
+      if (Math.abs(w - target) > 8 || !el.parentElement) continue;
       if (el.parentElement.clientWidth - w > 40) {
         el.setAttribute(WIDE, '');
         changed = true;
       }
     }
-    if (!changed) return;
+    if (!changed) break;
   }
+  // Something was narrow (target is set) and nothing is now.
+  if (!dialog.hasAttribute(READY) && !layerWidth(dialog)) dialog.setAttribute(READY, '');
 }
 
-kwHab.onElement('[aria-label="Close composer dialog"]', function (close) {
+kwHab.onElement(CLOSE, function (close) {
   var dialog = close.closest('[role="dialog"]:has(> form)');
   if (!dialog || dialog.__kwWidening) return;
   dialog.__kwWidening = true;
   widen(dialog);
+  var frames = 0;
+  (function eachFrame() {
+    if (!dialog.isConnected || ++frames > 60) return;
+    widen(dialog);
+    requestAnimationFrame(eachFrame);
+  })();
   var timer = setInterval(function () {
     if (!dialog.isConnected) { clearInterval(timer); return; }
     widen(dialog);

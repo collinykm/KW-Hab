@@ -1,0 +1,17 @@
+/* The number of new friend requests, as a red badge after the "Friend
+   requests" link in the Friends card on the user's own friends grid; added by
+   js/friend-requests.js. */
+.kw-friend-requests-count {
+  display: inline-block;
+  min-width: 20px;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--notification-badge, #e41e3f);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  vertical-align: middle;
+}

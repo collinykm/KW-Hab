@@ -34,6 +34,15 @@
   width: min(680px, calc(100vw - 32px)) !important;
   max-width: none !important;
 }
+/* Invisible until js/post-dialog.js has stretched the inner layers, so it
+ * never shows squished first; shown after 0.6s regardless. */
+[role="dialog"]:has(> form [aria-label="Close composer dialog"]):not([data-kw-post-dialog-ready]) {
+  animation: kw-post-dialog-reveal 0s linear 0.6s both !important;
+}
+@keyframes kw-post-dialog-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 [role="dialog"]:has(> form [aria-label="Close composer dialog"]) > form,
 [role="dialog"]:has(> form [aria-label="Close composer dialog"]) > form > div,
 [data-kw-post-dialog-wide] {

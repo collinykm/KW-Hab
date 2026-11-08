@@ -8,6 +8,10 @@
 // - Comment boxes: the same button, left of Send.
 // - Any other text box (posts, search): the same button appears next to it
 //   while it has focus.
+//
+// Only while the user has "Talk to type" on in Settings: css/speech-to-text.css
+// hides the buttons when it's off, and turning it off cancels any recording,
+// so it takes effect without a reload.
 
 var HANDLER = 'kwSpeechToText';
 var MAX_RECORDING_MS = 60000;
@@ -25,6 +29,7 @@ var LABELS = {
 };
 var ERRORS = {
   not_configured: "Speaking isn't set up yet",
+  disabled: 'Talk to type is turned off in Settings',
   unauthorized: "Speaking isn't set up yet",
   no_mic: 'Allow the microphone, then try again',
   empty: "Didn't catch that. Try again.",
@@ -68,8 +73,12 @@ function toBase64(blob) {
   });
 }
 
+function enabled() {
+  return kwHab.settings.talkToType === true;
+}
+
 function start(button, target) {
-  if (session) return;
+  if (session || !enabled()) return;
   if (!navigator.mediaDevices || !window.MediaRecorder) {
     showError(button, 'no_mic');
     return;
@@ -130,6 +139,10 @@ function transcribe(mine, blob) {
 
 function finish(mine, text, error) {
   if (session === mine) session = null;
+  if (!enabled()) { // turned off while transcribing: type nothing
+    setState(mine.button, 'idle');
+    return;
+  }
   if (error) {
     showError(mine.button, error);
     return;
@@ -248,6 +261,7 @@ kwHab.onElement(COMMENT_SUBMIT, function (submit) {
 
 var floating = null; // the shared button, created on first use
 var floatingTarget = null;
+var resizes = null; // watches floatingTarget's size
 
 // Messenger composers and open comment boxes already have their own button.
 function hasComposerButton(box) {
@@ -260,6 +274,12 @@ function hasComposerButton(box) {
   return false;
 }
 
+function postDialogEmoji(box) {
+  var dialog = box.closest('[role="dialog"]:has([aria-label="Close composer dialog"])');
+  var emoji = dialog && dialog.querySelector('[role="button"][aria-label="Emoji"]');
+  return emoji && emoji.offsetWidth ? emoji : null;
+}
+
 function placeFloating() {
   if (!floating || !floatingTarget) return;
   var box = floatingTarget.getBoundingClientRect();
@@ -269,6 +289,15 @@ function placeFloating() {
   var top = box.bottom + 6;
   if (top + size.height > window.innerHeight - 8) top = box.top - size.height - 6;
   var left = Math.min(box.right - size.width, window.innerWidth - size.width - 8);
+  // In the Create post dialog, the Emoji button sits right there, so go to
+  // its left, centred on its icon (the button also holds an "Emoji" label).
+  var emoji = postDialogEmoji(floatingTarget);
+  if (emoji) {
+    var e = emoji.getBoundingClientRect();
+    var icon = (emoji.querySelector('svg, img, i') || emoji).getBoundingClientRect();
+    top = icon.top + (icon.height - size.height) / 2;
+    left = e.left - size.width - 12;
+  }
   floating.style.top = Math.max(8, top) + 'px';
   floating.style.left = Math.max(8, left) + 'px';
 }
@@ -280,7 +309,12 @@ function showFloating(box) {
     document.body.appendChild(floating);
     window.addEventListener('scroll', placeFloating, true);
     window.addEventListener('resize', placeFloating);
+    // The box can change size without a scroll or resize (e.g. a dialog
+    // widening after it opens).
+    resizes = new ResizeObserver(placeFloating);
   }
+  resizes.disconnect();
+  resizes.observe(box);
   if (!floating.isConnected) document.body.appendChild(floating);
   floatingTarget = box;
   floating.hidden = false;
@@ -296,6 +330,7 @@ function hideFloating() {
 }
 
 document.addEventListener('focusin', function (e) {
+  if (!enabled()) return;
   var box = e.target;
   if (!box.matches || !box.matches(TEXTBOX) || box.closest('.kw-speak')) return;
   if (hasComposerButton(box)) return hideFloating();
@@ -312,8 +347,8 @@ document.addEventListener('focusout', function () {
   }, 150);
 }, true);
 
-// Leaving the page stops listening without typing anything.
-kwHab.onNavigate(function () {
+// Stops listening without typing anything, and releases the microphone.
+function cancel() {
   if (!session) return;
   var mine = session;
   session = null;
@@ -324,5 +359,15 @@ kwHab.onNavigate(function () {
   }
   if (mine.stream) mine.stream.getTracks().forEach(function (t) { t.stop(); });
   setState(mine.button, 'idle');
+  hideFloating();
+}
+
+// Leaving the page cancels.
+kwHab.onNavigate(cancel);
+
+// So does turning talk to type off in Settings.
+kwHab.onSettings(function (settings) {
+  if (settings.talkToType === true) return;
+  cancel();
   hideFloating();
 });

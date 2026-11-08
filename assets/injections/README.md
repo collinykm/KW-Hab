@@ -26,6 +26,32 @@ Use the same `<area>` name across the three folders for one feature, e.g.
   a `data-kw-page` attribute on `<html>` and the CSS can target that.
 - Prefix any classes/ids you create with `kw-` so they never clash with Facebook's.
 
+## User settings
+
+The accessibility choices from onboarding reach every page (and change live,
+without a reload):
+
+- JS: `kwHab.settings` → `{ textScale, boldText, buttonScale, readAloud, talkToType }`,
+  and `kwHab.onSettings(cb)` to react to changes.
+- CSS: `var(--kw-text-scale)` / `var(--kw-button-scale)` (1 = normal) and the
+  `html[data-kw-bold-text]`, `html[data-kw-read-aloud]`, `html[data-kw-talk-to-type]`
+  attributes (present only when that feature is on).
+
+`css/read-aloud.css` and `css/speech-to-text.css` hide their buttons unless
+`html[data-kw-read-aloud]` / `html[data-kw-talk-to-type]` is set, and the Dart
+bridges behind them refuse (`error: 'disabled'`) while the setting is off.
+
+`css/accessibility.css` applies text size and bold text to the whole page.
+`js/tap-targets.js` + `css/tap-targets.css` apply button size to everything
+clickable: short controls (icons, "Like 62", tabs) are zoomed whole, wide ones
+made taller (with their content zoomed if it's short), links in text get a
+bigger invisible hit area, wrappers with a fixed size are grown to fit, and
+rows whose controls get pushed out of view wrap onto a second line. Controls you add get this automatically. If a scaled control breaks
+your area's layout, fix it in your area's CSS under `html[data-kw-big-taps]`,
+or opt an element out by giving it `data-kw-tap="big"` before it renders.
+Support contacts are deliberately not available here (Facebook can read the
+page).
+
 ## Seeing changes
 
 Asset files are bundled at build time. With `flutter run -d macos` running,
