@@ -229,6 +229,91 @@ void main() {
       expect(result.notifyStaff, isFalse);
     });
 
+    final safeAnswer = {
+      'notifyStaff': false,
+      'category': 'none',
+      'severity': 'none',
+      'reason': '',
+      'flaggedMessages': [],
+    };
+    String rateLimited(String model) => jsonEncode({
+          'error': {
+            'message': 'Rate limit exceeded for model $model (limit: 20 requests per day on '
+                'Free Tier). Please retry in 2h20m2s or upgrade your tier.',
+            'code': 'too_many_requests',
+          }
+        });
+
+    test('falls back to the next model when rate limited, then skips the limited one', () async {
+      final asked = <String>[];
+      var now = DateTime(2026, 11, 8, 9);
+      final classifier = GeminiSafetyClassifier(
+        apiKey: 'k',
+        model: 'main',
+        fallbackModels: const ['backup-1', 'backup-2'],
+        clock: () => now,
+        client: MockClient((request) async {
+          final model = (jsonDecode(request.body) as Map)['model'] as String;
+          asked.add(model);
+          if (model == 'main') return http.Response(rateLimited(model), 429);
+          if (model == 'backup-1') return http.Response('{"error":{"message":"overloaded"}}', 503);
+          return http.Response(geminiReply(safeAnswer), 200);
+        }),
+      );
+
+      expect((await classifier.assess(snapshot([(false, 'hi')]))).notifyStaff, isFalse);
+      expect(asked, ['main', 'backup-1', 'backup-2']);
+
+      // Within the wait, the limited models aren't asked again.
+      asked.clear();
+      now = now.add(const Duration(seconds: 30));
+      await classifier.assess(snapshot([(false, 'hi again')]));
+      expect(asked, ['backup-2']);
+
+      // backup-1's guessed one-minute wait is over; main's 2h20m isn't.
+      asked.clear();
+      now = now.add(const Duration(minutes: 2));
+      await classifier.assess(snapshot([(false, 'and again')]));
+      expect(asked, ['backup-1', 'backup-2']);
+    });
+
+    test('throws when every model is rate limited', () async {
+      final classifier = GeminiSafetyClassifier(
+        apiKey: 'k',
+        model: 'main',
+        fallbackModels: const ['backup'],
+        client: MockClient((request) async =>
+            http.Response(rateLimited((jsonDecode(request.body) as Map)['model'] as String), 429)),
+      );
+      await expectLater(
+        classifier.assess(snapshot([(false, 'hi')])),
+        throwsA(isA<SafetyClassifierException>()
+            .having((e) => e.message, 'message', contains('rate limited'))),
+      );
+    });
+
+    test('does not fall back on errors every model would hit', () async {
+      var requests = 0;
+      final classifier = GeminiSafetyClassifier(
+        apiKey: 'k',
+        client: MockClient((_) async {
+          requests++;
+          return http.Response('{"error":{"message":"API key not valid"}}', 400);
+        }),
+      );
+      await expectLater(classifier.assess(snapshot([(false, 'hi')])),
+          throwsA(isA<SafetyClassifierException>()));
+      expect(requests, 1);
+    });
+
+    test('reads the retry delay from rate-limit messages', () {
+      expect(GeminiSafetyClassifier.retryDelay('Please retry in 2h20m2s or upgrade'),
+          const Duration(hours: 2, minutes: 20, seconds: 2));
+      expect(GeminiSafetyClassifier.retryDelay('Please retry in 12.5s.'),
+          const Duration(milliseconds: 12500));
+      expect(GeminiSafetyClassifier.retryDelay('Resource exhausted'), isNull);
+    });
+
     test('throws on HTTP errors, unfinished interactions and unreadable answers', () async {
       final failing = GeminiSafetyClassifier(
         apiKey: 'k',

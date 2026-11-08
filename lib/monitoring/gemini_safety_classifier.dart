@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'conversation.dart';
@@ -14,30 +15,87 @@ class GeminiSafetyClassifier implements SafetyClassifier {
   GeminiSafetyClassifier({
     required this.apiKey,
     this.model = defaultModel,
+    this.fallbackModels = defaultFallbackModels,
     http.Client? client,
     // Worrying conversations are slow: 55-90s observed (Nov 2026) for a
     // romance scam, versus about a second for small talk.
     this.timeout = const Duration(minutes: 3),
-  }) : _client = client ?? http.Client();
+    DateTime Function()? clock,
+  })  : _client = client ?? http.Client(),
+        _clock = clock ?? DateTime.now;
 
   static const String defaultModel = 'gemini-3.8-flash';
+
+  /// Tried in order when [model] is rate limited or overloaded. Each model has
+  /// its own quota (the free tier allows about 20 requests a day per model).
+  /// Not `gemini-3.7-flash` or `gemini-flash-latest`: as of Nov 2026 they
+  /// count against gemini-3.8-flash's limit, so they fail along with it.
+  static const List<String> defaultFallbackModels = [
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-flash-lite',
+  ];
+
+  /// How long to skip a limited or overloaded model when Gemini doesn't say
+  /// when to retry.
+  static const Duration defaultRateLimitWait = Duration(minutes: 1);
 
   /// Pins the Interactions API's request/response format.
   static const String apiRevision = '2026-05-20';
 
   final String apiKey;
   final String model;
+  final List<String> fallbackModels;
   final Duration timeout;
   final http.Client _client;
+  final DateTime Function() _clock;
+
+  /// Models that hit a limit, and when they can be tried again.
+  final Map<String, DateTime> _limitedUntil = {};
 
   static final Uri endpoint =
       Uri.https('generativelanguage.googleapis.com', '/v1beta/interactions');
 
+  /// [model] then [fallbackModels], without duplicates.
+  List<String> get models => {model, ...fallbackModels}.toList();
+
   @override
   Future<SafetyAssessment> assess(ConversationSnapshot conversation) async {
-    final http.Response response;
+    final now = _clock();
+    var candidates =
+        models.where((m) => !(_limitedUntil[m]?.isAfter(now) ?? false)).toList();
+    // Every model is waiting out a limit: try them all anyway rather than
+    // give up, since a wait may have been a guess.
+    if (candidates.isEmpty) candidates = models;
+
+    final failures = <String>[];
+    for (final candidate in candidates) {
+      final response = await _send(conversation, candidate);
+      if (response.statusCode == 200) {
+        _limitedUntil.remove(candidate);
+        if (candidate != model) {
+          debugPrint('[kw-hab:message-monitor] answered by fallback $candidate');
+        }
+        return parseResponse(response.body);
+      }
+      final message = _errorMessage(response.body);
+      if (!_isCapacityError(response.statusCode)) {
+        throw SafetyClassifierException('HTTP ${response.statusCode}: $message');
+      }
+      final wait = response.statusCode == 429 ? retryDelay(message) : null;
+      _limitedUntil[candidate] = _clock().add(wait ?? defaultRateLimitWait);
+      debugPrint('[kw-hab:message-monitor] $candidate unavailable '
+          '(HTTP ${response.statusCode}), trying the next model');
+      failures.add('$candidate: $message');
+    }
+    throw SafetyClassifierException(
+        'every model is rate limited or overloaded:\n${failures.join('\n')}');
+  }
+
+  Future<http.Response> _send(ConversationSnapshot conversation, String model) async {
     try {
-      response = await _client
+      return await _client
           .post(
             endpoint,
             headers: {
@@ -51,11 +109,29 @@ class GeminiSafetyClassifier implements SafetyClassifier {
     } catch (e) {
       throw SafetyClassifierException('request failed: $e');
     }
-    if (response.statusCode != 200) {
-      throw SafetyClassifierException(
-          'HTTP ${response.statusCode}: ${_errorMessage(response.body)}');
+  }
+
+  /// Rate limited (429) or temporarily overloaded (503): another model may
+  /// still answer. Other errors (bad key, bad request) would fail for every
+  /// model.
+  static bool _isCapacityError(int statusCode) =>
+      statusCode == 429 || statusCode == 503;
+
+  /// Reads "Please retry in 2h20m2s" (or "in 12.5s") from Gemini's rate-limit
+  /// message. Public for tests.
+  static Duration? retryDelay(String message) {
+    final match = RegExp(r'retry in ((?:\d+(?:\.\d+)?[hms])+)').firstMatch(message);
+    if (match == null) return null;
+    var seconds = 0.0;
+    for (final part in RegExp(r'(\d+(?:\.\d+)?)([hms])').allMatches(match[1]!)) {
+      final value = double.parse(part[1]!);
+      seconds += switch (part[2]) {
+        'h' => value * 3600,
+        'm' => value * 60,
+        _ => value,
+      };
     }
-    return parseResponse(response.body);
+    return Duration(milliseconds: (seconds * 1000).ceil());
   }
 
   /// The Interactions request body. Public for tests.
