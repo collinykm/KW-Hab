@@ -7,6 +7,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../shell/page_bridge.dart';
 import '../shell/url_routing.dart';
+import 'eleven_labs_stt.dart';
 import 'eleven_labs_tts.dart';
 
 /// Lets `assets/injections/js/read-aloud.js` ask for speech:
@@ -60,16 +61,93 @@ class ReadAloudBridge implements PageBridge {
 /// that, from the `ELEVENLABS_API_KEY` environment variable. Optional:
 /// `ELEVENLABS_VOICE_ID`, `ELEVENLABS_MODEL_ID`.
 ReadAloudBridge createReadAloudBridge() {
-  const names = ['ELEVENLABS_API_KEY', 'ELEVENLABS_VOICE_ID', 'ELEVENLABS_MODEL_ID'];
+  final settings = _elevenLabsSettings(
+      const ['ELEVENLABS_API_KEY', 'ELEVENLABS_VOICE_ID', 'ELEVENLABS_MODEL_ID']);
+  final tts = ElevenLabsTts.fromEnvironment(settings);
+  debugPrint(tts.isConfigured
+      ? '[kw-hab:read-aloud] on, voice ${tts.voiceId}, model ${tts.modelId}'
+      : '[kw-hab:read-aloud] off: no ELEVENLABS_API_KEY in .env or the environment');
+  return ReadAloudBridge(tts);
+}
+
+/// Lets `assets/injections/js/speech-to-text.js` turn a recording into text:
+///
+/// ```js
+/// window.flutter_inappwebview.callHandler('kwSpeechToText', base64Audio, mimeType)
+///   // -> {ok: true, text} or {ok: false, error: code}
+/// ```
+///
+/// Like read aloud, the ElevenLabs request happens here, so the page never
+/// sees the API key.
+class SpeechToTextBridge implements PageBridge {
+  SpeechToTextBridge(this.stt);
+
+  /// Must match `HANDLER` in speech-to-text.js.
+  static const String handlerName = 'kwSpeechToText';
+
+  final ElevenLabsStt stt;
+
+  @override
+  void attach(InAppWebViewController controller) {
+    controller.addJavaScriptHandler(
+      handlerName: handlerName,
+      callback: (JavaScriptHandlerFunctionData data) async {
+        // Only Facebook's own top-level page, so embedded third-party frames
+        // can't spend the ElevenLabs credits.
+        if (!data.isMainFrame || !isInAppHost(data.origin.host)) {
+          return {'ok': false, 'error': 'not_allowed'};
+        }
+        if (!stt.isConfigured) return {'ok': false, 'error': 'not_configured'};
+        final args = data.args;
+        if (args.length < 2 || args[0] is! String || args[1] is! String) {
+          return {'ok': false, 'error': 'bad_audio'};
+        }
+        final encoded = args[0] as String;
+        // Base64 is 4/3 the size of the audio: refuse before decoding.
+        if (encoded.length > ElevenLabsStt.maxBytes * 4 ~/ 3 + 4) {
+          return {'ok': false, 'error': 'too_long'};
+        }
+        final Uint8List audio;
+        try {
+          audio = base64Decode(encoded);
+        } on FormatException {
+          return {'ok': false, 'error': 'bad_audio'};
+        }
+        try {
+          return {'ok': true, 'text': await stt.transcribe(audio, args[1] as String)};
+        } on SpeechException catch (e) {
+          debugPrint('[kw-hab:speech-to-text] $e');
+          return {'ok': false, 'error': e.code};
+        }
+      },
+    );
+  }
+}
+
+/// Always returns a bridge, so the page can say "Speech to text isn't set up
+/// yet" when there is no key. Uses `ELEVENLABS_API_KEY` like read aloud;
+/// optional `ELEVENLABS_STT_MODEL_ID`.
+SpeechToTextBridge createSpeechToTextBridge() {
+  final settings =
+      _elevenLabsSettings(const ['ELEVENLABS_API_KEY', 'ELEVENLABS_STT_MODEL_ID']);
+  final stt = ElevenLabsStt(
+    apiKey: settings['ELEVENLABS_API_KEY'],
+    modelId: settings['ELEVENLABS_STT_MODEL_ID'] ?? ElevenLabsStt.defaultModelId,
+  );
+  debugPrint(stt.isConfigured
+      ? '[kw-hab:speech-to-text] on, model ${stt.modelId}'
+      : '[kw-hab:speech-to-text] off: no ELEVENLABS_API_KEY in .env or the environment');
+  return SpeechToTextBridge(stt);
+}
+
+/// Non-empty values for [names], from `.env` (git-ignored) or, failing that,
+/// the environment.
+Map<String, String> _elevenLabsSettings(List<String> names) {
   final settings = <String, String>{};
   for (final name in names) {
     final fromFile = dotenv.isInitialized ? dotenv.get(name, fallback: '').trim() : '';
     final value = fromFile.isNotEmpty ? fromFile : (Platform.environment[name] ?? '').trim();
     if (value.isNotEmpty) settings[name] = value;
   }
-  final tts = ElevenLabsTts.fromEnvironment(settings);
-  debugPrint(tts.isConfigured
-      ? '[kw-hab:read-aloud] on, voice ${tts.voiceId}, model ${tts.modelId}'
-      : '[kw-hab:read-aloud] off: no ELEVENLABS_API_KEY in .env or the environment');
-  return ReadAloudBridge(tts);
+  return settings;
 }

@@ -1,0 +1,87 @@
+/* Speech-to-text button from js/speech-to-text.js. */
+.kw-speak {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: none;
+  border: 0;
+  border-radius: 18px;
+  background: var(--primary-deemphasized-button-background, #ebf5ff);
+  color: var(--primary-deemphasized-button-text, #0866ff);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.kw-speak:hover {
+  filter: brightness(0.96);
+}
+
+.kw-speak:focus-visible {
+  outline: 3px solid var(--accent, #0866ff);
+  outline-offset: 2px;
+}
+
+.kw-speak__icon {
+  flex: none;
+}
+
+.kw-speak__icon--stop,
+.kw-speak[data-state="listening"] .kw-speak__icon--mic {
+  display: none;
+}
+
+.kw-speak[data-state="listening"] .kw-speak__icon--stop {
+  display: block;
+}
+
+/* Listening: red, so it's clear the microphone is on. */
+.kw-speak[data-state="listening"] {
+  background: #e41e3f;
+  color: #fff;
+  animation: kw-speak-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes kw-speak-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(228, 30, 63, 0.45); }
+  50% { box-shadow: 0 0 0 6px rgba(228, 30, 63, 0); }
+}
+
+.kw-speak[data-state="working"] {
+  opacity: 0.75;
+  cursor: progress;
+}
+
+.kw-speak[data-state="error"] {
+  background: var(--secondary-button-background, #e4e6eb);
+  color: var(--primary-text, #050505);
+}
+
+/* In Messenger's message box, left of the emoji button, in the chat's colour. */
+.kw-speak--composer {
+  align-self: center;
+  height: 30px;
+  margin: 0 6px 0 4px;
+  padding: 0 10px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.kw-speak--composer[data-state="idle"] {
+  color: var(--kw-speak-icon, #0866ff);
+}
+
+/* Next to other text boxes while they have focus. */
+.kw-speak--floating {
+  position: fixed;
+  z-index: 2147483000;
+  min-height: 40px;
+  padding: 8px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.kw-speak--floating[hidden] {
+  display: none;
+}

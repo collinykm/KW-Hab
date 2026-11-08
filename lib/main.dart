@@ -13,6 +13,10 @@ Future<void> main() async {
   await dotenv.load(fileName: ".env");
   final injections = await InjectionBundle.load(rootBundle);
   // Dart services page scripts can call (see lib/shell/page_bridge.dart).
-  final bridges = <PageBridge>[?createMessageMonitorBridge(), createReadAloudBridge()];
+  final bridges = <PageBridge>[
+    ?createMessageMonitorBridge(),
+    createReadAloudBridge(),
+    createSpeechToTextBridge(),
+  ];
   runApp(FacebookApp(injections: injections, bridges: bridges));
 }
