@@ -10,9 +10,14 @@
  * beside it, which only opens that popup, is hidden.
  *
  * The user's own posts keep the menu (Edit post, Delete post, Edit audience):
- * js/post-menu.js marks those with [data-kw-own-post]. */
+ * js/post-menu.js marks those with [data-kw-own-post].
+ *
+ * The X in a post's top-right corner (a link labelled "Hide post by <name>")
+ * is hidden too: one click
+ * removes the post with no confirmation, easy to hit by mistake. */
 
 [role="button"][aria-label^="Actions for this post"]:not([data-kw-own-post]),
+[aria-label^="Hide post by "],
 .kw-post-actions [role="button"][aria-label^="React to "],
 [data-kw-post-menu-hidden] {
   display: none !important;
