@@ -229,6 +229,7 @@ function themeColor(from) {
 
 var floating = null; // the shared button, created on first use
 var floatingTarget = null;
+var resizes = null; // watches floatingTarget's size
 
 // Messenger composers already have their own button.
 function hasComposerButton(box) {
@@ -237,6 +238,12 @@ function hasComposerButton(box) {
     if (composerBox(buttons[i]) === box) return true;
   }
   return false;
+}
+
+function postDialogEmoji(box) {
+  var dialog = box.closest('[role="dialog"]:has([aria-label="Close composer dialog"])');
+  var emoji = dialog && dialog.querySelector('[role="button"][aria-label="Emoji"]');
+  return emoji && emoji.offsetWidth ? emoji : null;
 }
 
 function placeFloating() {
@@ -248,6 +255,15 @@ function placeFloating() {
   var top = box.bottom + 6;
   if (top + size.height > window.innerHeight - 8) top = box.top - size.height - 6;
   var left = Math.min(box.right - size.width, window.innerWidth - size.width - 8);
+  // In the Create post dialog, the Emoji button sits right there, so go to
+  // its left, centred on its icon (the button also holds an "Emoji" label).
+  var emoji = postDialogEmoji(floatingTarget);
+  if (emoji) {
+    var e = emoji.getBoundingClientRect();
+    var icon = (emoji.querySelector('svg, img, i') || emoji).getBoundingClientRect();
+    top = icon.top + (icon.height - size.height) / 2;
+    left = e.left - size.width - 12;
+  }
   floating.style.top = Math.max(8, top) + 'px';
   floating.style.left = Math.max(8, left) + 'px';
 }
@@ -259,7 +275,12 @@ function showFloating(box) {
     document.body.appendChild(floating);
     window.addEventListener('scroll', placeFloating, true);
     window.addEventListener('resize', placeFloating);
+    // The box can change size without a scroll or resize (e.g. a dialog
+    // widening after it opens).
+    resizes = new ResizeObserver(placeFloating);
   }
+  resizes.disconnect();
+  resizes.observe(box);
   if (!floating.isConnected) document.body.appendChild(floating);
   floatingTarget = box;
   floating.hidden = false;
