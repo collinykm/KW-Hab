@@ -7,7 +7,13 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Kw Hab</string>
+	<string>Facebook</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Facebook uses the camera for video calls and live video.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Facebook uses the microphone for calls, videos and Talk to type.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Facebook uses your photos so you can share them in posts and messages.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

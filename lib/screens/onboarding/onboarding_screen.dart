@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../settings/accessibility_settings.dart';
+import '../../shell/platform.dart';
 import '../../settings/accessibility_theme.dart';
 import '../../settings/app_settings.dart';
 import '../../settings/settings_scope.dart';
@@ -84,7 +85,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               action: FilledButton(onPressed: _finish, child: const Text('Done')),
             ),
             Expanded(
-              child: ListView(
+              // Phones: clear of the home indicator / navigation bar. The Mac
+              // has no such insets, so nothing changes there.
+              child: SafeArea(
+                top: false,
+                child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                 children: [
                   _Column(children: [
@@ -117,7 +122,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           key: const Key('buttonScale'),
                           icon: Icons.touch_app_outlined,
                           title: 'Button size',
-                          subtitle: 'Make buttons bigger and easier to click.',
+                          subtitle: isMobile
+                              ? 'Make buttons bigger and easier to tap.'
+                              : 'Make buttons bigger and easier to click.',
                           value: a.buttonScale,
                           min: AccessibilitySettings.minButtonScale,
                           max: AccessibilitySettings.maxButtonScale,
@@ -196,6 +203,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ]),
                 ],
               ),
+              ),
             ),
           ],
         ),
@@ -217,7 +225,10 @@ class _TopBar extends StatelessWidget {
       color: KwColors.card,
       elevation: 1,
       shadowColor: Colors.black26,
-      child: Padding(
+      // Phones: below the status bar and notch. No-op on the Mac.
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
@@ -233,6 +244,7 @@ class _TopBar extends StatelessWidget {
             action,
           ],
         ),
+      ),
       ),
     );
   }
@@ -293,9 +305,12 @@ class _IntroCard extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Each change happens right away, so you can try it and see. '
-                      'You can come back any time: click your profile picture on the top right corner, choose Settings… '
-                      ,
+                      isMobile
+                          // Phones/tablets: tapped, and the picture is labelled "Account".
+                          ? 'Each change happens right away, so you can try it and see. '
+                              'You can come back any time: tap your picture (Account) in the top right corner, then Settings.'
+                          : 'Each change happens right away, so you can try it and see. '
+                              'You can come back any time: click your profile picture on the top right corner, choose Settings… ',
                       style: text.bodyMedium,
                     ),
                   ),

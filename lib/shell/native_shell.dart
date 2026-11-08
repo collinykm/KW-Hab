@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 
-/// Bridge to `macos/Runner/MainFlutterWindow.swift`.
+/// Bridge to `macos/Runner/MainFlutterWindow.swift` (and, for
+/// [requestPermissions], `android/.../MainActivity.kt`).
 ///
 /// Native -> Dart: `menu` with a command string (reload, back, forward, home,
 /// zoomIn, zoomOut, zoomReset, settings).
@@ -16,6 +17,19 @@ class NativeShell {
         : (call) async {
             if (call.method == 'menu') await handler(call.arguments as String);
           });
+  }
+
+  /// Android only (`MainActivity.kt`): asks the user for the app's own camera
+  /// and/or microphone permission, which a web view needs before it can grant
+  /// them to a page. [names] are "camera" and "microphone"; returns the ones
+  /// the user allowed.
+  static Future<Set<String>> requestPermissions(Set<String> names) async {
+    try {
+      final granted = await _channel.invokeListMethod<String>('requestPermissions', names.toList());
+      return {...?granted};
+    } on MissingPluginException {
+      return names; // No native side: the platform has nothing to ask.
+    }
   }
 
   /// Only macOS implements this; elsewhere (e.g. the Windows runner) there is

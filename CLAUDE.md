@@ -16,7 +16,9 @@ Judge UI changes by these audiences, not by what a typical Facebook user expects
 
 ## What this is
 
-A Flutter desktop wrapper around facebook.com, built for **macOS**. The app window is the Facebook website in a WKWebView, restyled and extended with injected CSS/JS/HTML, plus native menus. Only the macOS UI matters; the iOS, Android and Windows targets are unmaintained template leftovers. Several people work on different UI areas in parallel, so the layout is organized to keep each area in its own files.
+A Flutter wrapper around facebook.com, built for **macOS** first, and also for **Android and iOS** phones and tablets. The app window is the Facebook website in a web view (WKWebView; Android's system WebView), restyled and extended with injected CSS/JS/HTML, plus native menus on the Mac. The Windows target is an unmaintained template leftover.
+
+Phones and tablets get the same desktop Facebook site, not m.facebook.com, so every injection works there too (see "Phones and tablets" below). Mobile support must never change the Mac app: gate Dart on `isMobile`/`isAndroid`/`isIOS` (`lib/shell/platform.dart`), and page CSS/JS on `html[data-kw-mobile]`. `test/mobile_test.dart` enforces the page side. Several people work on different UI areas in parallel, so the layout is organized to keep each area in its own files.
 
 Injected JS runs inside Facebook's page, so Facebook's own scripts can read anything in it. Keep secrets (e.g. the ElevenLabs API key) and calls to outside services on the Dart side, and reach them from the page through a bridge, not from `assets/injections/`.
 
@@ -24,13 +26,14 @@ Injected JS runs inside Facebook's page, so Facebook's own scripts can read anyt
 
 ```bash
 flutter run -d macos                 # run; press R (hot restart) to pick up asset/CSS/JS changes
+flutter run -d <android-or-ios-device> # phones/tablets (`flutter devices` lists them)
 flutter build macos --debug          # build to build/macos/Build/Products/Debug/kw_hab.app
 flutter analyze                      # lint (flutter_lints)
 flutter test                         # all tests
 flutter test test/injection_bundle_test.dart --plain-name "<test name>"   # single test
 ```
 
-CocoaPods is **not** installed on this machine. Every plugin must support Swift Package Manager, which is why `flutter_inappwebview` is pinned to the `6.2.0-beta` line (the 6.1.x stable needs CocoaPods). If a build ever adds `Podfile`s or `Pods` entries to `project.pbxproj`/xcconfigs, revert them rather than installing CocoaPods.
+CocoaPods is **not** installed on this machine. Every plugin must support Swift Package Manager (iOS too), which is why `flutter_inappwebview` is pinned to the `6.2.0-beta` line (the 6.1.x stable needs CocoaPods). If a build ever adds `Podfile`s or `Pods` entries to `project.pbxproj`/xcconfigs, revert them rather than installing CocoaPods.
 
 ## Layout
 
@@ -70,3 +73,12 @@ Onboarding (`lib/screens/onboarding/`) is shown by `FacebookShell` after a page 
 - Native bridge: the `kw_hab/shell` MethodChannel (`native_shell.dart` ↔ `MainFlutterWindow.swift`). Native → Dart sends `menu` commands (reload/back/forward/home/zoom/settings). Dart → native sends `setTitle`.
 - Shortcuts are native `NSMenu` key equivalents on purpose: when the WKWebView has focus, Flutter never sees key events. Don't replace the xib menu with Flutter's `PlatformMenuBar`, because that drops the Edit menu and breaks copy/paste in the web view.
 - Entitlements (`DebugProfile`/`Release`, keep in sync) need `network.client`, camera, audio-input, user-selected files and downloads access. Camera/mic usage strings are in `Info.plist`.
+
+## Phones and tablets (Android, iOS)
+
+- `lib/shell/platform.dart`: `isMobile`, and the desktop user agent phones send (desktop Chrome on Android with the WebView's own version, desktop Safari on iOS) so Facebook serves the desktop site. `kMobilePageScript` (added only on mobile) marks the page `html[data-kw-mobile]` and gives it a `width=device-width` viewport; Android also uses `useWideViewPort: false`.
+- `FacebookWebView` builds separate `_desktopSettings()` (the Mac's, unchanged) and `_mobileSettings()`. Mobile adds pull-to-refresh (no menu bar), full-screen popups on narrow screens, and downloads handed to the device's browser (`downloads.dart`).
+- Android: the back gesture goes back in the web view (`PopScope` in `FacebookShell`). Camera/mic need the app's own runtime permission first: `NativeShell.requestPermissions` → `MainActivity.kt` on the `kw_hab/shell` channel. Permissions in `AndroidManifest.xml`. iOS: camera/mic/photos usage strings in `ios/Runner/Info.plist`.
+- `css/mobile.css` + `js/mobile.js` rearrange the desktop site for screens under 600px wide: Facebook's middle tabs become a bottom tab bar (hidden inside a conversation and while typing), Back moves into the top bar, docked Messenger chats fill the screen, and post action buttons share the width. Tablets keep the desktop layout.
+- Flutter screens use `SafeArea` for the status bar and home indicator (a no-op on the Mac), and say "tap" instead of "click" on mobile.
+- Debug builds can be inspected: Android from `chrome://inspect`, iOS from Safari's Develop menu.
