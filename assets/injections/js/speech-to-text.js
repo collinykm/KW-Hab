@@ -22,6 +22,25 @@ var EMOJI = '[role="button"][aria-label="Choose an emoji"]';
 var COMMENT_SUBMIT = '#focused-state-composer-submit';
 var EDITABLE = '[contenteditable="true"][role="textbox"]';
 
+// Boxes for secrets (Messenger's chat PIN, passwords, one-time codes, card
+// numbers) get no button: saying them out loud can be overheard, and the
+// recording would be sent to ElevenLabs. Messenger's PIN box is a plain
+// type="text" input, so it's recognized by its autocomplete hint and label.
+var SECRET_AUTOCOMPLETE = /one-time-code|password|cc-/i;
+var SECRET_LABEL = /\b(pin|passcode|password|security code|verification code|login code|cvv|cvc)\b/i;
+
+function isSecret(box) {
+  if (box.type === 'password') return true;
+  if (SECRET_AUTOCOMPLETE.test(box.getAttribute('autocomplete') || '')) return true;
+  var label = [box.getAttribute('aria-label'), box.getAttribute('placeholder'),
+    box.getAttribute('name')].join(' ');
+  return SECRET_LABEL.test(label);
+}
+
+function wantsButton(box) {
+  return !!box.matches && box.matches(TEXTBOX) && !isSecret(box);
+}
+
 var LABELS = {
   idle: 'Speak to type',
   listening: 'Stop',
@@ -333,7 +352,7 @@ document.addEventListener('focusin', function (e) {
   if (!enabled()) return;
   var box = e.target;
   if (!box.matches || !box.matches(TEXTBOX) || box.closest('.kw-speak')) return;
-  if (hasComposerButton(box)) return hideFloating();
+  if (isSecret(box) || hasComposerButton(box)) return hideFloating();
   if (session && session.button === floating) return;
   showFloating(box);
 }, true);
@@ -342,7 +361,7 @@ document.addEventListener('focusout', function () {
   // Wait for focus to land somewhere: moving between boxes shows it again.
   setTimeout(function () {
     var active = document.activeElement;
-    if (active && active.matches && active.matches(TEXTBOX)) return;
+    if (active && wantsButton(active)) return;
     hideFloating();
   }, 150);
 }, true);
