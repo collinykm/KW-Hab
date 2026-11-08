@@ -3,11 +3,8 @@
    html[data-kw-big-taps] while the Button size setting is above 100%.
    --kw-button-scale comes from runtime.js (1 = normal, up to 2). */
 
-/* The top bar grows so its bigger buttons fit. Facebook positions the page
-   below it with this variable. */
-html[data-kw-big-taps] {
-  --header-height: calc(56px * var(--kw-button-scale, 1)) !important;
-}
+/* The top bar grows with the button size: see css/top-bar.css. */
+
 /* The Facebook logo floats over the search box's left end, which keeps a
    36px placeholder free for it; widen the placeholder as the logo grows. */
 html[data-kw-big-taps] div[role="banner"] div:has(> label input[role="combobox"]) > div:first-child {
@@ -18,12 +15,25 @@ html[data-kw-big-taps] div[role="banner"] div:has(> label input[role="combobox"]
    thing, icon, circle and all. */
 html[data-kw-big-taps] [data-kw-tap="compact"] {
   zoom: var(--kw-button-scale, 1) !important;
+  /* A percentage max-width (e.g. an avatar's 100% of a 28px column) is
+     taken in the zoomed size, so it would squash the control. The wrapper
+     is grown to fit instead (data-kw-tap-fit below). */
+  max-width: none !important;
 }
 
 /* Wider controls (tabs, menu items, text buttons, text boxes): taller, with
-   their icons scaled. Text size is left to the Text size setting. */
-html[data-kw-big-taps] [data-kw-tap="row"] {
-  min-height: calc(var(--kw-tap-h, 0px) * var(--kw-button-scale, 1)) !important;
+   their icons scaled, up to 44px (a comfortable click target) times the
+   button size. Rows already taller than that (cards, two-line rows) stay as
+   they are. Text size is left to the Text size setting. Boxes that fill a
+   row (often where its background is drawn) grow with it. */
+html[data-kw-big-taps] :is([data-kw-tap="row"], [data-kw-tap-fill]) {
+  min-height: max(
+    var(--kw-tap-h, 0px),
+    min(
+      calc(var(--kw-tap-h, 0px) * var(--kw-button-scale, 1)),
+      calc(44px * var(--kw-button-scale, 1))
+    )
+  ) !important;
 }
 html[data-kw-big-taps] [data-kw-tap-icon] {
   zoom: var(--kw-button-scale, 1) !important;
@@ -39,6 +49,24 @@ html[data-kw-big-taps] [data-kw-tap-content] [data-kw-tap-icon],
 html[data-kw-big-taps] [data-kw-tap-content] [data-kw-tap="compact"],
 html[data-kw-big-taps] [data-kw-tap-content] [data-kw-tap-content] {
   zoom: 1 !important;
+}
+
+/* Words in a zoomed control follow the Text size setting only: shrink them
+   back by the zoom (js/tap-targets.js records their normal size). Inside a
+   zoomed control, --kw-unzoom undoes the zoom; our own labels (css/*.css)
+   use it too, e.g. font-size: calc(0.8125rem * var(--kw-unzoom, 1)). */
+html[data-kw-big-taps] :is([data-kw-tap="compact"], [data-kw-tap-content]) {
+  --kw-unzoom: calc(1 / var(--kw-button-scale, 1));
+}
+html[data-kw-big-taps] [data-kw-tap-text=""] {
+  font-size: calc(var(--kw-tap-fs) * var(--kw-unzoom, 1)) !important;
+}
+/* Words drawn as an svg (a post's "5 days ago"). */
+html[data-kw-big-taps] [data-kw-tap-text="svg"] {
+  zoom: var(--kw-unzoom, 1) !important;
+}
+html[data-kw-big-taps] [data-kw-tap-text][style*="--kw-tap-lh"] {
+  line-height: calc(var(--kw-tap-lh) * var(--kw-unzoom, 1)) !important;
 }
 
 /* Links in running text: an invisible hit area around the words. Padding on

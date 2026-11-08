@@ -16,3 +16,16 @@
 [data-kw-tab][data-kw-active] * {
   color: inherit !important;
 }
+
+/* The tab bar is 60px tall (and clips what's taller), so at a bigger button
+ * size (css/tap-targets.css) the zoomed tabs were cut off. Grow the bar and
+ * the fixed-height boxes around it with the button size. */
+html[data-kw-big-taps] [role="main"] :is(
+  [role="tablist"]:has([role="tab"]),
+  div:has(> [role="tablist"] [role="tab"]),
+  div:has(> div > [role="tablist"] [role="tab"]),
+  div:has(> div > div > [role="tablist"] [role="tab"]),
+  div:has(> div > div > div > [role="tablist"] [role="tab"])
+) {
+  height: calc(60px * var(--kw-button-scale, 1)) !important;
+}

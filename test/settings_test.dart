@@ -198,4 +198,40 @@ void main() {
     expect((saved.name, saved.phone), ('Sam', '519-555-0100'));
     expect(saved.preferredMethod, ContactMethod.phone);
   });
+
+  testWidgets('settings screen fits at the largest text and button sizes', (tester) async {
+    final settings = AppSettings(storage: MemorySettingsStorage())
+      ..updateAccessibility((a) => a.copyWith(
+            textScale: AccessibilitySettings.maxTextScale,
+            buttonScale: AccessibilitySettings.maxButtonScale,
+            boldText: true,
+          ))
+      ..supportContacts = [
+        const SupportContact(
+          id: 'long',
+          name: 'Samantha Richardson-Montgomery',
+          phone: '519-555-0100',
+          email: 'samantha.richardson@example.org',
+          preferredMethod: ContactMethod.email,
+        ),
+      ];
+    // A wide and a narrow window, each tall enough to lay out every card.
+    for (final width in [1342.0, 600.0]) {
+      tester.view.physicalSize = Size(width, 6000);
+      tester.view.devicePixelRatio = 1;
+      await tester.pumpWidget(SettingsScope(
+        settings: settings,
+        child: MaterialApp(
+          theme: buildAppTheme(settings.accessibility),
+          builder: (context, child) =>
+              applyAccessibilityMediaQuery(context, settings.accessibility, child!),
+          home: const OnboardingScreen(firstRun: true),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'overflow at ${width}px wide');
+      expect(find.byKey(const Key('finishOnboarding')).hitTestable(), findsOneWidget);
+    }
+    tester.view.reset();
+  });
 }

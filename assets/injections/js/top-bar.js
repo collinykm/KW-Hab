@@ -149,6 +149,17 @@ kwHab.onElement(FRIENDS_TAB, updateFriendsTab);
 kwHab.onElement('[role="main"] [aria-label="Edit profile"]', updateFriendsTab);
 kwHab.onNavigate(updateFriendsTab);
 
+// ---- Search ---------------------------------------------------------------
+// "Search Facebook" is cut off in the fixed-width search box once the text
+// size goes up; "Search" says the same and fits. css/top-bar.css sizes the
+// box for the button size itself (as a whole, with its magnifier), so the
+// box is kept out of js/tap-targets.js.
+
+kwHab.onElement('div[role="banner"] input[role="combobox"]', function (input) {
+  input.setAttribute('data-kw-tap', 'big');
+  if (input.hasAttribute('placeholder')) input.setAttribute('placeholder', 'Search');
+});
+
 // ---- Profile button -------------------------------------------------------
 
 kwHab.onElement(PROFILE_BUTTON, function (button) {
