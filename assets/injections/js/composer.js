@@ -1,8 +1,8 @@
 // The "What's on your mind, <name>?" composer at the top of the feed (and on
 // your own profile). Its shortcut buttons are Live video, Photo/video and
-// Feeling/activity. Only Photo/video is kept. Live video and Feeling/activity
-// are still in the "Add to your post" row of the post dialog, so nothing is
-// lost, the shortcuts just aren't on the first screen.
+// Feeling/activity. Only Photo/video is kept. Feeling/activity is still in
+// the "Add to your post" row of the post dialog. Live video is removed from
+// the dialog as well (js/post-dialog.js), so it is gone everywhere.
 //
 // css/composer.css hides the aria-labelled buttons before the page paints
 // (no flash). Facebook has also shipped them as plain text, which CSS can't

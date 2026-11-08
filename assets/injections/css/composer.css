@@ -1,6 +1,7 @@
 /* The "What's on your mind" composer: only the Photo/video shortcut stays.
- * Live video and Feeling/activity are still in the post dialog's "Add to your
- * post" row, so they are never hidden inside a dialog.
+ * Feeling/activity is still in the post dialog's "Add to your post" row. Live
+ * video is removed from the dialog too, by css/post-dialog.css. This sheet
+ * never hides anything inside a dialog.
  *
  * This sheet loads before the page renders, so the buttons never flash. It
  * covers the icon-only buttons (with an aria-label). js/composer.js handles

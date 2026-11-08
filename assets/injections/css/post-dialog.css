@@ -1,0 +1,84 @@
+/* The "Create post" dialog (opened from "What's on your mind"). Removed:
+ * AI label, background options, Check in, Life update, GIF, Live video,
+ * Raise money, and the audience list's list-building choices. Kept, with
+ * text labels: Photo/video, Tag people, Feeling/activity and Emoji. The whole
+ * dialog is drawn larger.
+ *
+ * The composer is the dialog holding a "Close composer dialog" button. Its
+ * sub-screens (Tag people, Post audience, Add to your post, ...) open inside
+ * the same dialog, so this scope covers them too.
+ *
+ * Text-only items (the "Add to your post" list, Close Friends) can't be
+ * matched here; js/post-dialog.js tags them with [data-kw-post-dialog-hidden]. */
+
+[role="dialog"]:has([aria-label="Close composer dialog"]) :is(
+  [role="button"][aria-label^="AI label"],
+  [role="button"][aria-label="Check in"],
+  [role="button"][aria-label="Life update"],
+  [role="button"][aria-label="More post options"],
+  [role="button"][aria-label="Show background options"],
+  [role="button"][aria-label="Hide Background Options"],
+  [role="button"][aria-label="Background Options"],
+  [role="group"][aria-label="Choose background"]
+),
+[data-kw-post-dialog-hidden] {
+  display: none !important;
+}
+
+/* Larger text and buttons. Only the outer dialog (the one directly holding
+ * the <form>), so the inner role="dialog" headers aren't scaled twice. */
+[role="dialog"]:has(> form [aria-label="Close composer dialog"]) {
+  zoom: 1.25;
+}
+
+/* Post audience: keep Public, Friends and Only me. "Don't show to",
+ * "Only show to" and "Custom" are the role="radio" rows; one already chosen
+ * stays visible. The header's "More options" leads to a block list. */
+[role="radiogroup"][aria-label="Select audience"] > div > div:has([role="radio"][aria-checked="false"]),
+div:has(> div [role="radiogroup"][aria-label="Select audience"]) > div:has(> hr) [role="button"][aria-label="More options"] {
+  display: none !important;
+}
+
+/* Tag people: suggestions and search results that are business Pages or
+ * strangers' public profiles ("Tag Stripe, Page · 69K followers"). Friends
+ * read "Tag <name>, Friend" or just "Tag <name>". */
+[role="listbox"][aria-label="Friends to tag"] [role="option"]:is([aria-label*=", Page"], [aria-label*=", Profile"]):not([aria-selected="true"]) {
+  display: none !important;
+}
+
+/* Text labels under the icons. */
+[role="dialog"]:has([aria-label="Close composer dialog"]) :is(
+  [role="button"][aria-label="Photo/video"],
+  [role="button"][aria-label="Tag people"],
+  [role="button"][aria-label="Feeling/activity"],
+  [role="button"][aria-label="Emoji"]
+) {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: auto !important;
+  height: auto !important;
+  min-width: 48px;
+  padding: 4px 6px !important;
+  border-radius: 8px;
+}
+
+[role="dialog"]:has([aria-label="Close composer dialog"]) :is(
+  [role="button"][aria-label="Photo/video"],
+  [role="button"][aria-label="Tag people"],
+  [role="button"][aria-label="Feeling/activity"],
+  [role="button"][aria-label="Emoji"]
+)::after {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+  color: var(--secondary-text, #65676b);
+}
+
+[role="dialog"]:has([aria-label="Close composer dialog"]) [role="button"][aria-label="Photo/video"]::after { content: "Photo"; }
+[role="dialog"]:has([aria-label="Close composer dialog"]) [role="button"][aria-label="Tag people"]::after { content: "Tag people"; }
+[role="dialog"]:has([aria-label="Close composer dialog"]) [role="button"][aria-label="Feeling/activity"]::after { content: "Feeling"; }
+[role="dialog"]:has([aria-label="Close composer dialog"]) [role="button"][aria-label="Emoji"]::after { content: "Emoji"; }
