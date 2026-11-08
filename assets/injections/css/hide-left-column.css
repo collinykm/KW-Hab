@@ -1,4 +1,7 @@
-/* Hide the left-hand column on the home feed (profile, Friends, Groups, shortcuts). */
-div[role="navigation"][aria-label="Shortcuts"] {
+/* Hide the left-hand column on the home feed (profile, Friends, Groups, shortcuts)
+   and on the Friends home page (Friend requests, Suggestions, All friends...).
+   The Friends sub-pages (e.g. /friends/requests) use a different label, so they keep theirs. */
+div[role="navigation"][aria-label="Shortcuts"],
+div[role="navigation"][aria-label="Friends"] {
   display: none !important;
 }
