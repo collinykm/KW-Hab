@@ -1,0 +1,61 @@
+/* The "Conversation information" panel on the right of a Messenger
+ * conversation (/messages/t/… and /messages/e2ee/t/…). js/chat-info.js
+ * closes it when a conversation opens; the (i) button in the conversation's
+ * header opens it.
+ *
+ * What's left: the person's picture and name, the View profile / Mute chat /
+ * Search in chat buttons (relabelled by js/chat-info.js), and Block at the
+ * bottom. Hidden: the "End-to-end encrypted" badge, and the Chat info,
+ * Customize chat, Media & files and Privacy & support sections. Block lives
+ * in Privacy & support, so js/chat-info.js keeps that section open with only
+ * Block showing and its header hidden; everything it marks
+ * [data-kw-chat-info-hidden] is hidden here.
+ *
+ * This stylesheet is in the page before Facebook's, whose rules win a tie, so
+ * every property that overrides one of theirs is !important. */
+
+[role="main"] a[href*="/help/messenger-app/"]:not([role="log"] *),
+[data-kw-chat-info-hidden] {
+  display: none !important;
+}
+
+/* The longer View profile / Mute chat / Search in chat labels wrap onto two
+ * lines instead of being cut off with "…". */
+[data-kw-chat-info-label] {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  text-align: center !important;
+}
+
+/* Block, alone at the bottom, as a red button with a line saying what it
+ * does. */
+[data-kw-chat-info-block] {
+  margin-top: 8px !important;
+}
+[data-kw-chat-info-block] [role="button"] {
+  border: 1px solid var(--error-text, #e41e3f) !important;
+  border-radius: 8px !important;
+}
+[data-kw-chat-info-block] [role="button"] span,
+[data-kw-chat-info-block] [role="button"] svg {
+  color: var(--error-text, #e41e3f) !important;
+  --x-color: var(--error-text, #e41e3f) !important;
+  font-weight: 600 !important;
+}
+[data-kw-chat-info-block] [role="button"]::after {
+  content: "Stop this person from messaging or calling you";
+  display: block;
+  padding: 0 8px 8px 44px;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--secondary-text, #65676b);
+}
+
+/* A chat's theme (Customize chat, now hidden) colours its scrollbar too, e.g.
+ * purple. Keep it the usual grey. */
+[role="main"],
+[role="main"] * {
+  --chat-scrollbar-thumb-color: rgba(0, 0, 0, 0.2) !important;
+  --chat-scrollbar-track-color: transparent !important;
+}

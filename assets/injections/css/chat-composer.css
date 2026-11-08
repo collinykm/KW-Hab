@@ -1,0 +1,82 @@
+/* The message bar at the bottom of a Messenger conversation ("Thread
+ * composer"). Kept: the voice message button (relabelled, with a new icon, by
+ * js/chat-composer.js), the photo / file button, the text box and Send.
+ * Hidden: stickers, GIFs and the thumbs-up "Send a like" button (once
+ * something is typed it turns into Send, which stays). The emoji button is
+ * hidden in narrow, phone-sized windows, where the bar is short of room.
+ *
+ * While something is typed, Facebook swaps the buttons for a + button whose
+ * "More actions menu" lists them again; stickers and GIFs are hidden there
+ * too.
+ *
+ * js/chat-composer.js marks the kept buttons [data-kw-chat-composer], their
+ * slots in the bar [data-kw-chat-composer-slot], the row holding the buttons
+ * and the text box [data-kw-chat-composer-row], and the sticker and GIF slots
+ * [data-kw-chat-composer-hidden].
+ *
+ * This stylesheet is in the page before Facebook's, whose rules win a tie, so
+ * every property that overrides one of theirs is !important. */
+
+[aria-label="Thread composer"] [role="button"]:is(
+  [aria-label="Choose a sticker"],
+  [aria-label="Choose a GIF"],
+  [aria-label="Send a like"]
+),
+[role="menu"][aria-label="More actions menu"] [role="menuitem"]:is(
+  [aria-label="Choose a sticker"],
+  [aria-label="Choose a GIF"]
+),
+[data-kw-chat-composer-hidden] {
+  display: none !important;
+}
+
+@media (max-width: 600px) {
+  [aria-label="Thread composer"] [role="button"][aria-label="Choose an emoji"] {
+    display: none !important;
+  }
+}
+
+/* The buttons and the text box are centred on one line, and the text box is
+ * kept off the right edge (with the thumbs-up gone, nothing else is there). */
+[data-kw-chat-composer-row] {
+  align-items: center !important;
+  padding-right: 12px !important;
+}
+
+[data-kw-chat-composer-slot],
+[data-kw-chat-composer-slot] :not(svg, svg *, [data-kw-chat-composer]) {
+  width: auto !important;
+  height: auto !important;
+}
+[data-kw-chat-composer-slot] {
+  align-self: center !important;
+}
+
+/* Both buttons the same size, outlined, with the icon above the label and
+ * both centred. */
+[data-kw-chat-composer] {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  box-sizing: border-box !important;
+  width: 76px !important;
+  height: 60px !important;
+  margin: 6px 3px !important;
+  padding: 6px 4px !important;
+  border: 1.5px solid var(--chat-composer-button-color, #0070f6) !important;
+  border-radius: 10px !important;
+}
+
+[data-kw-chat-composer]::after {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 14px;
+  text-align: center;
+  white-space: pre;
+  color: var(--chat-composer-button-color, #0070f6);
+}
+
+[data-kw-chat-composer="voice"]::after { content: "Voice\A message"; }
+[data-kw-chat-composer="photo"]::after { content: "Photo"; }
