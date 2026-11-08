@@ -65,3 +65,16 @@ page).
 Asset files are bundled at build time. With `flutter run -d macos` running,
 press `R` (hot restart) to rebuild the web view with your new files. Debug
 builds have the Web Inspector enabled: right-click the page → Inspect Element.
+
+## Phones and tablets
+
+The Android and iOS apps load this same desktop site, so every area runs
+there too, on a narrow touch screen. They mark the page `html[data-kw-mobile]`
+(the Mac app never does). Phone-only changes go in `css/mobile.css` /
+`js/mobile.js`, and **every** rule there must start with
+`html[data-kw-mobile]` (and `js/mobile.js` does nothing without it), so the
+Mac app is never affected; `test/mobile_test.dart` checks this. If another
+area needs a phone-only tweak, scope it the same way.
+
+There is no hover on a touch screen: anything that only appears on hover
+needs another way in on phones.

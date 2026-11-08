@@ -1,0 +1,195 @@
+/* Phones (Android, iOS). The app loads Facebook's desktop site there too
+ * (see lib/shell/platform.dart), so every other area works unchanged; this
+ * file only fixes what the desktop site does on a narrow screen.
+ *
+ * Every rule needs html[data-kw-mobile], which only the Android/iOS app sets
+ * (kMobilePageScript), so none of this can reach the Mac app, whatever its
+ * window size. Tablets (600px and wider) keep the desktop layout.
+ *
+ * - The middle tabs (Home, Friends, Reels, Messages, Saved, Groups), which
+ *   Facebook hides on narrow screens, become a tab bar along the bottom.
+ * - The Back button (js/back-button.js) moves into the top bar's empty middle.
+ * - A docked Messenger chat fills the screen (marked by js/mobile.js).
+ * - Pages with a fixed minimum width (the logged-out pages) are let shrink. */
+
+@media (max-width: 599px) {
+  html[data-kw-mobile] {
+    /* Room for the tab bar: 40px of icon and padding, scaled by the button
+     * size, plus 16px of label, scaled by the text size (as the top bar). */
+    --kw-tab-bar-height: calc(40px * var(--kw-button-scale, 1) + 16px * var(--kw-text-scale, 1) + 8px);
+  }
+
+  /* ---- Bottom tab bar ------------------------------------------------ */
+
+  html[data-kw-mobile] div[role="navigation"][aria-label="Facebook"] > ul {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 2147482000 !important;
+    display: flex !important;
+    justify-content: space-around !important;
+    align-items: stretch !important;
+    height: var(--kw-tab-bar-height) !important;
+    margin: 0 !important;
+    padding: 4px 0 !important;
+    box-sizing: border-box !important;
+    background: var(--surface-background, #fff) !important;
+    border-top: 1px solid var(--divider, #ced0d4) !important;
+    box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.08) !important;
+  }
+  /* Facebook hides each tab (and the span inside it) at this width. */
+  html[data-kw-mobile] div[role="navigation"][aria-label="Facebook"] > ul > li:not(:has(a[aria-label="Marketplace"], a[aria-label="Gaming"])) {
+    display: flex !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+  html[data-kw-mobile] div[role="navigation"][aria-label="Facebook"] > ul > li > span {
+    display: flex !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+  html[data-kw-mobile] div[role="navigation"][aria-label="Facebook"] > ul > li > span > div,
+  html[data-kw-mobile] div[role="navigation"][aria-label="Facebook"] > ul > li a[role="link"] {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: 100% !important;
+  }
+  /* Labels: one line. Six tabs share the screen's width, so a label grows
+   * with the Text size only up to what still fits ("Messages" in a sixth of
+   * the width), and stays a whole word instead of being cut off. */
+  html[data-kw-mobile] div[role="navigation"][aria-label="Facebook"] .kw-top-bar-label {
+    font-size: min(calc(0.8125rem * var(--kw-unzoom, 1)), 3.1vw) !important;
+    line-height: 1.25 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /* No tab bar inside a conversation (js/mobile.js marks those pages; the
+   * message box sits where it would be) or while typing (the on-screen
+   * keyboard already takes up the bottom of the screen). */
+  html[data-kw-mobile][data-kw-chat-thread] div[role="navigation"][aria-label="Facebook"] > ul,
+  html[data-kw-mobile]:has(:is(input, textarea, [contenteditable="true"]):focus) div[role="navigation"][aria-label="Facebook"] > ul {
+    display: none !important;
+  }
+  html[data-kw-mobile][data-kw-chat-thread] body,
+  html[data-kw-mobile]:has(:is(input, textarea, [contenteditable="true"]):focus) body {
+    padding-bottom: 0 !important;
+  }
+  html[data-kw-mobile][data-kw-chat-thread] [data-kw-chat-dock],
+  html[data-kw-mobile]:has(:is(input, textarea, [contenteditable="true"]):focus) [data-kw-chat-dock],
+  html[data-kw-mobile]:has(:is(input, textarea, [contenteditable="true"]):focus) [data-kw-chat-window] {
+    bottom: 0 !important;
+  }
+
+  /* Nothing at the bottom of a page hides behind the tab bar. */
+  html[data-kw-mobile] body {
+    padding-bottom: var(--kw-tab-bar-height) !important;
+  }
+
+  /* ---- Back button: in the top bar, right of search ------------------ */
+
+  html[data-kw-mobile] .kw-back {
+    top: max(4px, calc((var(--header-height, 56px) - 44px) / 2)) !important;
+    left: 116px !important;
+    height: 44px !important;
+    padding: 0 14px 0 10px !important;
+    box-shadow: none !important;
+  }
+  html[data-kw-mobile] .kw-back-room {
+    margin-left: 0 !important;
+  }
+
+  /* ---- Like / Comment / Share / Save under a post (js/post-menu.js) --
+   * Facebook gives each button a fixed width, which pushes Save off the
+   * screen. Here they share the width equally, anything else in the row
+   * (the reaction counts) goes onto a line of its own, and the labels grow
+   * with the Text size only up to what fits a quarter of the screen. */
+  html[data-kw-mobile] .kw-post-actions {
+    flex-wrap: wrap !important;
+  }
+  html[data-kw-mobile] .kw-post-actions > :has([data-kw-action], .kw-save) {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+  html[data-kw-mobile] .kw-post-actions :is([data-kw-action], .kw-save) {
+    padding: 10px 2px !important;
+    min-width: 0 !important;
+  }
+  html[data-kw-mobile] .kw-post-actions :is([data-kw-action], .kw-save)::after {
+    font-size: min(calc(0.8125rem * var(--kw-unzoom, 1)), 3.6vw) !important;
+    line-height: 1.25 !important;
+  }
+
+  /* ---- Read aloud in chats (js/read-aloud.js) ------------------------
+   * On the Mac the button sits beside the message bubble. A phone has no
+   * room for both (with big text the bubble was squeezed to a letter per
+   * line), so the message's row wraps and the button goes underneath. */
+  html[data-kw-mobile] :has(> .kw-read-aloud-cell) {
+    flex-wrap: wrap !important;
+  }
+  /* The cell keeps its opaque background (it hides Messenger's bubble
+   * gradient), and takes the row's direction: the user's own messages are a
+   * reversed row, so their button lines up on the right, under the bubble. */
+  html[data-kw-mobile] .kw-read-aloud-cell {
+    flex: 1 0 100% !important;
+    flex-direction: inherit !important;
+    order: 10 !important;
+    padding: 0 !important;
+  }
+  html[data-kw-mobile] .kw-read-aloud-cell .kw-read-aloud {
+    margin: 4px 8px 8px !important;
+  }
+
+  /* ---- Docked Messenger chats (marked by js/mobile.js) --------------- */
+
+  /* The corner dock (chat bubbles, "New message"): above the tab bar. */
+  html[data-kw-mobile] [data-kw-chat-dock] {
+    bottom: var(--kw-tab-bar-height) !important;
+  }
+  /* An open chat: the whole width, from the top bar down to the tab bar. */
+  html[data-kw-mobile] [data-kw-chat-window] {
+    position: fixed !important;
+    top: var(--header-height, 56px) !important;
+    bottom: var(--kw-tab-bar-height) !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+  }
+  html[data-kw-mobile] [data-kw-chat-window] > *,
+  html[data-kw-mobile] [data-kw-chat-fill] {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    max-height: none !important;
+    margin: 0 !important;
+  }
+  /* The card itself: header at the top, messages and composer below it
+  html[data-kw-mobile] * taking the rest. */
+  html[data-kw-mobile] [data-kw-chat-fill]:has(> [data-kw-chat-body]) {
+    display: flex !important;
+    flex-direction: column !important;
+    border-radius: 0 !important;
+  }
+  html[data-kw-mobile] [data-kw-chat-body] {
+    flex: 1 1 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  /* ---- Pages with a desktop minimum width ---------------------------- */
+
+  html[data-kw-mobile] [role="main"] {
+    min-width: 0 !important;
+  }
+}

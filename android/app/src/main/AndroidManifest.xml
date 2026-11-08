@@ -1,6 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Facebook itself, plus ElevenLabs/Gemini/Cloudinary from the Dart side. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Video calls and "Talk to type" (speech-to-text.js records with getUserMedia).
+         Asked for at runtime, the first time the page wants them
+         (MainActivity.requestPermissions). Not required: the app still works
+         on devices without a camera. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.microphone" android:required="false"/>
     <application
-        android:label="kw_hab"
+        android:label="Facebook"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
